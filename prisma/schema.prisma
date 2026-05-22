@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  startup   Startup? @relation(fields: [startupId], references: [id])
+  startupId String?
+
+  @@index([email])
+}
+
+enum Role {
+  COACH
+  ENTREPRENEUR
+}
+
+model Startup {
+  id        String   @id @default(cuid())
+  name      String
+  sector    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  sessions     Session[]
+  irlProfiles  IrlProfile[]
+  fundingRound FundingRound?
+}
+
+model Session {
+  id            String       @id @default(cuid())
+  sessionNumber Int
+  scheduledAt   DateTime
+  completedAt   DateTime?
+  durationMin   Int?
+  phase         SessionPhase @default(COACHING)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String
+
+  transcript Transcript?
+  summary    SessionSummary?
+  todos      Todo[]
+
+  @@index([startupId])
+}
+
+enum SessionPhase {
+  SOCIAL
+  IRL_CHECK
+  COACHING
+  PRIORITIZATION
+  CLOSING
+}
+
+model Transcript {
+  id              String   @id @default(cuid())
+  klangFileId     String   @unique
+  encryptedText   String
+  iv              String
+  authTag         String
+  durationSeconds Int?
+  createdAt       DateTime @default(now())
+
+  session   Session @relation(fields: [sessionId], references: [id])
+  sessionId String  @unique
+
+  @@index([klangFileId])
+}
+
+model SessionSummary {
+  id            String   @id @default(cuid())
+  encryptedData String
+  iv            String
+  authTag       String
+  createdAt     DateTime @default(now())
+
+  session   Session @relation(fields: [sessionId], references: [id])
+  sessionId String  @unique
+}
+
+model Todo {
+  id          String    @id @default(cuid())
+  text        String
+  priority    Int
+  agentSource String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  session   Session @relation(fields: [sessionId], references: [id])
+  sessionId String
+
+  feedback TodoFeedback?
+
+  @@index([sessionId])
+}
+
+model TodoFeedback {
+  id        String   @id @default(cuid())
+  stars     Int?
+  comment   String?
+  createdAt DateTime @default(now())
+
+  todo   Todo   @relation(fields: [todoId], references: [id])
+  todoId String @unique
+}
+
+model IrlProfile {
+  id        String   @id @default(cuid())
+  crl       Int
+  trl       Int
+  brl       Int
+  iprl      Int
+  frl       Int
+  orl       Int
+  notes     String?
+  createdAt DateTime @default(now())
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String
+
+  @@index([startupId])
+}
+
+model FundingRound {
+  id        String        @id @default(cuid())
+  quarter   String
+  amountSek Int?
+  roundType String?
+  status    FundingStatus @default(PLANNED)
+  updatedAt DateTime      @updatedAt
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String  @unique
+}
+
+enum FundingStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+  NOT_DEFINED
+}
+
+model AgentLog {
+  id           String   @id @default(cuid())
+  agentName    String
+  agentVersion String
+  sessionId    String
+  inputHash    String
+  outputHash   String
+  latencyMs    Int
+  createdAt    DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([agentName, agentVersion])
+}
