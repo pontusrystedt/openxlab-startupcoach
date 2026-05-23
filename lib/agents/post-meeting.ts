@@ -1,9 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk"
+import Mistral from "@mistralai/mistralai"
 import { prisma } from "@/lib/prisma"
 import { decrypt, encrypt } from "@/lib/crypto"
 import crypto from "crypto"
 
-const client = new Anthropic()
+const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! })
 const AGENT_NAME = "post_meeting_agent"
 const AGENT_VERSION = "v1"
 
@@ -67,15 +67,19 @@ ${transcriptText}`
 
   const inputHash = crypto.createHash("sha256").update(userMessage).digest("hex")
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
+  const response = await client.chat.complete({
+    model: "mistral-large-latest",
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: userMessage },
+    ],
+    responseFormat: { type: "json_object" },
   })
 
   const rawOutput =
-    response.content[0].type === "text" ? response.content[0].text : ""
+    typeof response.choices?.[0]?.message?.content === "string"
+      ? response.choices[0].message.content
+      : ""
 
   let parsed: {
     insight: string
@@ -84,10 +88,9 @@ ${transcriptText}`
   }
 
   try {
-    const cleaned = rawOutput.replace(/```json\n?|\n?```/g, "").trim()
-    parsed = JSON.parse(cleaned)
+    parsed = JSON.parse(rawOutput)
   } catch {
-    throw new Error(`Claude returnerade ogiltig JSON: ${rawOutput}`)
+    throw new Error(`Mistral returnerade ogiltig JSON: ${rawOutput}`)
   }
 
   const outputHash = crypto.createHash("sha256").update(rawOutput).digest("hex")

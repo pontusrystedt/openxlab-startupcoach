@@ -9,8 +9,7 @@ async function registerWebhook() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-KLANG-API-KEY": process.env.KLANG_API_KEY!,
-      "X-KLANG-API-SECRET": process.env.KLANG_API_SECRET!,
+      "Authorization": `Bearer ${process.env.KLANG_API_KEY!}`,
     },
     body: JSON.stringify({
       hookUrl: WEBHOOK_URL,
