@@ -1,4 +1,4 @@
-import Mistral from "@mistralai/mistralai"
+import { Mistral } from "@mistralai/mistralai"
 import { prisma } from "@/lib/prisma"
 import { decrypt, encrypt } from "@/lib/crypto"
 import crypto from "crypto"
