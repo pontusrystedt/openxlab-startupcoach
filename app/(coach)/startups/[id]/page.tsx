@@ -18,6 +18,7 @@ export default async function StartupDetailPage({
     include: {
       fundingRound: true,
       irlProfiles: { orderBy: { createdAt: "desc" }, take: 2 },
+      teamMembers: { orderBy: { createdAt: "asc" } },
       sessions: {
         orderBy: { sessionNumber: "desc" },
         include: {
@@ -133,11 +134,12 @@ export default async function StartupDetailPage({
         </div>
       </div>
 
-      {/* Fällbara sektioner: Möten + Todos */}
+      {/* Fällbara sektioner: Team + Möten + Todos */}
       <StartupSections
         startupId={id}
         sessions={sessions}
         todos={allTodos}
+        teamMembers={startup.teamMembers}
       />
     </div>
   )

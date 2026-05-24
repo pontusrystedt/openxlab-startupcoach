@@ -37,6 +37,21 @@ model Startup {
   sessions     Session[]
   irlProfiles  IrlProfile[]
   fundingRound FundingRound?
+  teamMembers  TeamMember[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  createdAt DateTime @default(now())
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String
+
+  @@index([startupId])
 }
 
 model Session {
