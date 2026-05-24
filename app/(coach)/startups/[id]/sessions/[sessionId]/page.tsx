@@ -4,6 +4,7 @@ import { decrypt } from "@/lib/crypto"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import KlangFileForm from "./KlangFileForm"
+import { TodoList } from "@/app/components/todos/TodoList"
 
 export default async function SessionDetailPage({
   params,
@@ -101,34 +102,14 @@ export default async function SessionDetailPage({
       {/* Todos */}
       {session.todos.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <h2 className="font-medium text-gray-900 mb-3">
-            Todos ({session.todos.length})
-          </h2>
-          <ol className="space-y-2">
-            {session.todos.map((todo) => (
-              <li key={todo.id} className="flex items-start gap-3 text-sm">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#1D9E75] text-white text-xs flex items-center justify-center font-medium">
-                  {todo.priority}
-                </span>
-                <div className="flex-1">
-                  <p className={todo.completedAt ? "line-through text-gray-400" : "text-gray-800"}>
-                    {todo.text}
-                  </p>
-                  {todo.dueDate && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Deadline: {new Date(todo.dueDate).toLocaleDateString("sv-SE")}
-                    </p>
-                  )}
-                  {todo.feedback && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Feedback: {"★".repeat(todo.feedback.stars ?? 0)}{" "}
-                      {todo.feedback.comment}
-                    </p>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
+          <TodoList
+            todos={session.todos.map((t) => ({
+              ...t,
+              dueDate: t.dueDate?.toISOString() ?? null,
+              createdAt: t.createdAt.toISOString(),
+            }))}
+            isCoach={true}
+          />
         </div>
       )}
 
