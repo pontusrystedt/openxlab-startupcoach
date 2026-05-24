@@ -1,29 +1,53 @@
-import { prisma } from "@/lib/prisma"
-import { requireAuth } from "@/lib/access"
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import TodoList from "./TodoList"
+import { prisma } from "@/lib/prisma"
+import { TodoList } from "@/app/components/todos/TodoList"
 
-export default async function TodosPage() {
-  await requireAuth()
+export default async function EntrepreneurTodosPage() {
   const session = await auth()
-  if (!session?.user.startupId) redirect("/login")
+  if (!session || session.user.role !== "ENTREPRENEUR") redirect("/login")
+  if (!session.user.startupId) redirect("/unauthorized")
 
-  const todos = await prisma.todo.findMany({
+  const latestSession = await prisma.session.findFirst({
     where: {
-      session: { startupId: session.user.startupId },
+      startupId: session.user.startupId,
+      todos: { some: {} },
     },
-    orderBy: [{ completedAt: "asc" }, { priority: "asc" }],
+    orderBy: { scheduledAt: "desc" },
     include: {
-      feedback: true,
-      session: { select: { sessionNumber: true } },
+      startup: true,
+      todos: {
+        where: { status: { not: "DELETED" } },
+        orderBy: { priority: "asc" },
+      },
     },
   })
 
+  if (!latestSession) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <p className="text-sm text-gray-500">
+          Inga todos ännu — de dyker upp här efter ert första möte.
+        </p>
+      </div>
+    )
+  }
+
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Todos</h1>
-      <TodoList initialTodos={todos} />
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <TodoList
+        todos={latestSession.todos.map((t) => ({
+          ...t,
+          dueDate: t.dueDate?.toISOString() ?? null,
+          createdAt: t.createdAt.toISOString(),
+        }))}
+        isCoach={false}
+        sessionInfo={{
+          sessionNumber: latestSession.sessionNumber,
+          scheduledAt: latestSession.scheduledAt.toISOString(),
+          startupName: latestSession.startup.name,
+        }}
+      />
     </div>
   )
 }

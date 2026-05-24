@@ -94,14 +94,16 @@ model SessionSummary {
 }
 
 model Todo {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   text        String
+  comment     String?
   priority    Int
+  status      TodoStatus @default(NOT_STARTED)
   agentSource String?
   dueDate     DateTime?
   completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   session   Session @relation(fields: [sessionId], references: [id])
   sessionId String
@@ -109,6 +111,13 @@ model Todo {
   feedback TodoFeedback?
 
   @@index([sessionId])
+}
+
+enum TodoStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+  DELETED
 }
 
 model TodoFeedback {
