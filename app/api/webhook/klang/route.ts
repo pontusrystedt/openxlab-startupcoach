@@ -5,16 +5,23 @@ import { runPostMeetingAgent } from "@/lib/agents/post-meeting"
 
 // Undantagen från auth-proxy (se proxy.ts matcher)
 export async function POST(req: NextRequest) {
+  const body = await req.json()
+
+  // Logga inkommande payload för att lära känna Klangs struktur
+  console.log("Klang webhook headers:", Object.fromEntries(req.headers.entries()))
+  console.log("Klang webhook body:", JSON.stringify(body, null, 2))
+
+  // Verifiera webhook-secret
   const secret = req.headers.get("x-klang-webhook-secret")
+    ?? req.headers.get("x-webhook-secret")
+    ?? req.headers.get("authorization")
   if (secret !== process.env.KLANG_WEBHOOK_SECRET) {
+    console.warn("Webhook secret mismatch. Mottagen:", secret)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = await req.json()
-
-  // TODO: Verifiera exakt payload-struktur mot Klang.ai docs
-  // Antagen struktur: { type: string, fileId: string, transcriptionText: string }
-  if (body.type !== "transcriptionFinished") {
+  // Stöd både gamla och nya event-typer
+  if (body.type !== "conversation.ready" && body.type !== "transcriptionFinished") {
     return NextResponse.json({ ok: true })
   }
 
