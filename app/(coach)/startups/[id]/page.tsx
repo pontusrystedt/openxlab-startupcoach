@@ -3,6 +3,7 @@ import { requireCoach } from "@/lib/access"
 import Link from "next/link"
 import { IrlRadar } from "@/components/IrlRadar"
 import { notFound } from "next/navigation"
+import { StartupSections } from "./StartupSections"
 
 export default async function StartupDetailPage({
   params,
@@ -19,7 +20,14 @@ export default async function StartupDetailPage({
       irlProfiles: { orderBy: { createdAt: "desc" }, take: 2 },
       sessions: {
         orderBy: { sessionNumber: "desc" },
-        include: { _count: { select: { todos: true } }, summary: true },
+        include: {
+          _count: { select: { todos: true } },
+          summary: true,
+          todos: {
+            where: { status: { not: "DELETED" } },
+            orderBy: { priority: "asc" },
+          },
+        },
       },
     },
   })
@@ -27,13 +35,25 @@ export default async function StartupDetailPage({
   if (!startup) notFound()
 
   const [currentIrl, previousIrl] = startup.irlProfiles
-  const PHASE_LABEL: Record<string, string> = {
-    SOCIAL: "Social",
-    IRL_CHECK: "IRL-check",
-    COACHING: "Coaching",
-    PRIORITIZATION: "Prioritering",
-    CLOSING: "Avslutning",
-  }
+
+  // Samla alla todos från alla sessions, sorterade per session och prioritet
+  const allTodos = startup.sessions.flatMap((s) =>
+    s.todos.map((t) => ({
+      ...t,
+      dueDate: t.dueDate?.toISOString() ?? null,
+      createdAt: t.createdAt.toISOString(),
+      sessionNumber: s.sessionNumber,
+    }))
+  )
+
+  const sessions = startup.sessions.map((s) => ({
+    id: s.id,
+    sessionNumber: s.sessionNumber,
+    scheduledAt: s.scheduledAt.toISOString(),
+    phase: s.phase,
+    todoCount: s._count.todos,
+    hasSummary: !!s.summary,
+  }))
 
   return (
     <div className="space-y-6">
@@ -92,9 +112,7 @@ export default async function StartupDetailPage({
               </div>
               <div>
                 <p className="text-gray-500">Typ</p>
-                <p className="font-medium">
-                  {startup.fundingRound.roundType ?? "–"}
-                </p>
+                <p className="font-medium">{startup.fundingRound.roundType ?? "–"}</p>
               </div>
               <div>
                 <p className="text-gray-500">Belopp (SEK)</p>
@@ -115,62 +133,12 @@ export default async function StartupDetailPage({
         </div>
       </div>
 
-      {/* Sessions */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h2 className="font-medium text-gray-900">Möteslogg</h2>
-          <Link
-            href={`/startups/${id}/sessions`}
-            className="text-sm text-[#1D9E75] hover:underline"
-          >
-            Alla sessions
-          </Link>
-        </div>
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-600">#</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-600">Datum</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-600">Fas</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-600">Todos</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-600">Summary</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {startup.sessions.map((session) => (
-              <tr key={session.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/startups/${id}/sessions/${session.id}`}
-                    className="text-[#1D9E75] hover:underline font-medium"
-                  >
-                    #{session.sessionNumber}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {new Date(session.scheduledAt).toLocaleDateString("sv-SE")}
-                </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {PHASE_LABEL[session.phase]}
-                </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {session._count.todos}
-                </td>
-                <td className="px-4 py-3">
-                  {session.summary ? (
-                    <span className="text-green-600 text-xs">Klar</span>
-                  ) : (
-                    <span className="text-gray-400 text-xs">–</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {startup.sessions.length === 0 && (
-          <p className="text-center py-8 text-gray-400 text-sm">Inga sessions ännu</p>
-        )}
-      </div>
+      {/* Fällbara sektioner: Möten + Todos */}
+      <StartupSections
+        startupId={id}
+        sessions={sessions}
+        todos={allTodos}
+      />
     </div>
   )
 }
