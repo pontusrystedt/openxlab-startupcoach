@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { requireCoach } from "@/lib/access"
 
-export async function GET() {
-  await requireCoach()
+export async function GET(req: NextRequest) {
+  const session = await requireCoach()
+
+  const { searchParams } = new URL(req.url)
+  const status = searchParams.get("status") ?? undefined
 
   const startups = await prisma.startup.findMany({
+    where: {
+      ...(session.user.orgId ? { orgId: session.user.orgId } : {}),
+      ...(status ? { status: status as "SCREENING" | "COACHING" | "ALUMNI" | "ARCHIVED" } : {}),
+    },
     include: {
       fundingRound: true,
       irlProfiles: { orderBy: { createdAt: "desc" }, take: 1 },
