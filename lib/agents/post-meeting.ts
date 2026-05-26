@@ -62,14 +62,14 @@ export async function runPostMeetingAgent(sessionId: string): Promise<void> {
   const mötesdatum = session.scheduledAt.toISOString().split("T")[0]
 
   // Hämta agentkontext om org finns
-  const { knowledgeText, startupFileText } = session.startup.orgId
+  const { knowledgeText, startupFileText, projectFileText } = session.startup.orgId
     ? await buildAgentContext(session.startup.orgId, session.startupId)
-    : { knowledgeText: "", startupFileText: "" }
+    : { knowledgeText: "", startupFileText: "", projectFileText: "" }
 
   const userMessage = `Startup: ${session.startup.name} (${session.startup.sector})
 Session #${session.sessionNumber} — datum: ${mötesdatum}
 ${irlContext}
-${knowledgeText ? `\n--- Relevant kunskap från knowledge-repo ---\n${knowledgeText}\n` : ""}${startupFileText ? `--- Uppladdade dokument för denna startup ---\n${startupFileText}\n` : ""}
+${knowledgeText ? `\n--- Relevant kunskap från knowledge-repo ---\n${knowledgeText}\n` : ""}${startupFileText ? `--- Uppladdade dokument för denna startup ---\n${startupFileText}\n` : ""}${projectFileText ? `--- Finansiärsansökan / projektdokument ---\n${projectFileText}\n` : ""}
 --- Transkription ---
 ${transcriptText}`
 

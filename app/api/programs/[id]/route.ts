@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireClientAdmin } from "@/lib/access"
+import { requireCoach } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireClientAdmin()
+  const session = await requireCoach()
   const { id } = await params
   const { name, description, isActive } = await req.json()
 

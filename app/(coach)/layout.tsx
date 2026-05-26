@@ -36,9 +36,12 @@ export default async function CoachLayout({
           </Link>
           {isAdmin && (
             <Link href="/admin/users" className="text-sm text-gray-600 hover:text-gray-900">
-              Admin
+              Användare
             </Link>
           )}
+          <Link href="/admin/programs" className="text-sm text-gray-600 hover:text-gray-900">
+            Program
+          </Link>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">{session.user.email}</span>

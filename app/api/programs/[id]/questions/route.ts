@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireClientAdmin } from "@/lib/access"
+import { requireCoach } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 import { uploadFile } from "@/lib/storage"
 import { extractText } from "@/lib/extract-text"
@@ -8,7 +8,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await requireClientAdmin()
+  const session = await requireCoach()
   const { id: programId } = await params
 
   const program = await prisma.program.findFirst({

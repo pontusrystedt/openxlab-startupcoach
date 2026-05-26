@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireCoach, requireClientAdmin } from "@/lib/access"
+import { requireCoach } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
@@ -8,13 +8,17 @@ export async function GET() {
   const programs = await prisma.program.findMany({
     where: { orgId: session.user.orgId! },
     orderBy: { createdAt: "asc" },
+    include: {
+      questionDoc: { select: { fileName: true, uploadedAt: true } },
+      _count: { select: { startups: true } },
+    },
   })
 
   return NextResponse.json(programs)
 }
 
 export async function POST(req: NextRequest) {
-  const session = await requireClientAdmin()
+  const session = await requireCoach()
 
   if (!session.user.orgId) {
     return NextResponse.json({ error: "Ingen organisation" }, { status: 403 })
