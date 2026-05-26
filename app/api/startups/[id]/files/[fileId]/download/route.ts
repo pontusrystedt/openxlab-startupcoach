@@ -20,6 +20,7 @@ export async function GET(
   })
   if (!file) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  if (!file.storageKey) return NextResponse.json({ error: "Ingen fil att ladda ner" }, { status: 400 })
   const url = await getDownloadUrl(file.storageKey)
   return NextResponse.json({ url })
 }

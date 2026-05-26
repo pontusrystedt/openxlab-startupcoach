@@ -202,10 +202,13 @@ model TeamMember {
 
 model StartupFile {
   id            String   @id @default(cuid())
-  fileName      String
-  mimeType      String
-  sizeBytes     Int
-  storageKey    String
+  type          String   @default("FILE") // "FILE" | "LINK"
+  fileName      String?
+  mimeType      String?
+  sizeBytes     Int?
+  storageKey    String?
+  url           String?
+  title         String?
   uploadedBy    String
   uploadedAt    DateTime @default(now())
   description   String?

@@ -207,9 +207,12 @@ function TeamSection({ startupId, initial }: { startupId: string; initial: TeamM
 
 interface StartupFile {
   id: string
-  fileName: string
-  mimeType: string
-  sizeBytes: number
+  type: string
+  fileName: string | null
+  mimeType: string | null
+  sizeBytes: number | null
+  url: string | null
+  title: string | null
   uploadedAt: string
   description: string | null
 }
@@ -218,6 +221,10 @@ function FilesSection({ startupId }: { startupId: string }) {
   const [files, setFiles] = useState<StartupFile[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [showLinkForm, setShowLinkForm] = useState(false)
+  const [linkTitle, setLinkTitle] = useState("")
+  const [linkUrl, setLinkUrl] = useState("")
+  const [savingLink, setSavingLink] = useState(false)
 
   useEffect(() => {
     fetch(`/api/startups/${startupId}/files`)
@@ -239,6 +246,24 @@ function FilesSection({ startupId }: { startupId: string }) {
     }
     setUploading(false)
     e.target.value = ""
+  }
+
+  async function handleAddLink(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingLink(true)
+    const res = await fetch(`/api/startups/${startupId}/files/link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: linkTitle, url: linkUrl }),
+    })
+    if (res.ok) {
+      const record = await res.json()
+      setFiles((prev) => [record, ...prev])
+      setLinkTitle("")
+      setLinkUrl("")
+      setShowLinkForm(false)
+    }
+    setSavingLink(false)
   }
 
   async function handleDownload(fileId: string, fileName: string) {
@@ -266,7 +291,13 @@ function FilesSection({ startupId }: { startupId: string }) {
 
   return (
     <div className="p-4 space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setShowLinkForm(!showLinkForm)}
+          className="text-sm text-[#1D9E75] hover:underline"
+        >
+          + Lägg till länk
+        </button>
         <label className={`text-sm text-[#1D9E75] hover:underline cursor-pointer ${uploading ? "opacity-50" : ""}`}>
           {uploading ? "Laddar upp…" : "+ Ladda upp fil"}
           <input
@@ -279,27 +310,74 @@ function FilesSection({ startupId }: { startupId: string }) {
         </label>
       </div>
 
+      {showLinkForm && (
+        <form onSubmit={handleAddLink} className="bg-gray-50 rounded-lg p-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Titel *</label>
+              <input
+                required
+                value={linkTitle}
+                onChange={(e) => setLinkTitle(e.target.value)}
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">URL *</label>
+              <input
+                required
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={savingLink}
+              className="px-3 py-1.5 bg-[#1D9E75] text-white rounded-lg text-xs font-medium disabled:opacity-50">
+              {savingLink ? "Sparar…" : "Spara"}
+            </button>
+            <button type="button" onClick={() => setShowLinkForm(false)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-100">
+              Avbryt
+            </button>
+          </div>
+        </form>
+      )}
+
       {loading ? (
         <p className="text-sm text-gray-400 text-center py-4">Laddar…</p>
       ) : files.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">Inga filer uppladdade ännu.</p>
+        <p className="text-sm text-gray-400 text-center py-4">Inga filer eller länkar ännu.</p>
       ) : (
         <div className="divide-y divide-gray-100">
           {files.map((f) => (
             <div key={f.id} className="flex items-center justify-between py-2">
               <div>
-                <p className="text-sm font-medium text-gray-900">{f.fileName}</p>
+                {f.type === "LINK" ? (
+                  <a href={f.url ?? "#"} target="_blank" rel="noopener noreferrer"
+                    className="text-sm font-medium text-[#1D9E75] hover:underline">
+                    🔗 {f.title ?? f.url}
+                  </a>
+                ) : (
+                  <p className="text-sm font-medium text-gray-900">📄 {f.fileName}</p>
+                )}
                 <p className="text-xs text-gray-500">
-                  {formatBytes(f.sizeBytes)} · {new Date(f.uploadedAt).toLocaleDateString("sv-SE")}
+                  {f.sizeBytes ? `${formatBytes(f.sizeBytes)} · ` : ""}
+                  {new Date(f.uploadedAt).toLocaleDateString("sv-SE")}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleDownload(f.id, f.fileName)}
-                  className="text-xs text-[#1D9E75] hover:underline"
-                >
-                  Ladda ner
-                </button>
+                {f.type === "FILE" && f.fileName && (
+                  <button
+                    onClick={() => handleDownload(f.id, f.fileName!)}
+                    className="text-xs text-[#1D9E75] hover:underline"
+                  >
+                    Ladda ner
+                  </button>
+                )}
                 <button
                   onClick={() => handleDelete(f.id)}
                   className="text-xs text-gray-400 hover:text-red-500"
@@ -321,12 +399,12 @@ export function StartupSections({ startupId, sessions, todos, teamMembers }: Pro
   return (
     <div className="space-y-3">
       {/* Team */}
-      <CollapseSection title="Team" badge={teamMembers.length} defaultOpen={true}>
+      <CollapseSection title="Team" badge={teamMembers.length} defaultOpen={false}>
         <TeamSection startupId={startupId} initial={teamMembers} />
       </CollapseSection>
 
       {/* Möten */}
-      <CollapseSection title="Möten" badge={sessions.length} defaultOpen={true}>
+      <CollapseSection title="Möten" badge={sessions.length} defaultOpen={false}>
         <div className="px-4 py-3 flex justify-end border-b border-gray-50">
           <Link
             href={`/startups/${startupId}/sessions`}
@@ -381,7 +459,7 @@ export function StartupSections({ startupId, sessions, todos, teamMembers }: Pro
       </CollapseSection>
 
       {/* Todos — alla från alla möten */}
-      <CollapseSection title="Todos" badge={activeTodos.length} defaultOpen={activeTodos.length > 0}>
+      <CollapseSection title="Todos" badge={activeTodos.length} defaultOpen={false}>
         <div className="p-4">
           {todos.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">

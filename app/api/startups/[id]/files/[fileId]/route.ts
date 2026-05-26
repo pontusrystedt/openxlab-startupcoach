@@ -20,7 +20,9 @@ export async function DELETE(
   })
   if (!file) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  await deleteFile(file.storageKey)
+  if (file.storageKey) {
+    try { await deleteFile(file.storageKey) } catch { /* fortsätt om S3-radering misslyckas */ }
+  }
   await prisma.startupFile.delete({ where: { id: fileId } })
 
   return NextResponse.json({ ok: true })
