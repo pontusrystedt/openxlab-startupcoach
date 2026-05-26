@@ -7,52 +7,271 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         Role
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  startup   Startup? @relation(fields: [startupId], references: [id])
-  startupId String?
-
-  @@index([email])
-}
+// ── Enums ──────────────────────────────────────────────────────────────────
 
 enum Role {
+  SYSTEM_ADMIN
+  CLIENT_ADMIN
   COACH
   ENTREPRENEUR
 }
 
-model Startup {
+enum OrgPlan {
+  STANDARD
+  ENTERPRISE
+}
+
+enum StartupStatus {
+  SCREENING
+  COACHING
+  ALUMNI
+  ARCHIVED
+}
+
+enum Language {
+  SWEDISH
+  ENGLISH
+}
+
+enum AiStatus {
+  ON_TRACK
+  WARNING
+  OFF_TRACK
+}
+
+enum SessionPhase {
+  SOCIAL
+  IRL_CHECK
+  COACHING
+  PRIORITIZATION
+  CLOSING
+}
+
+enum TodoStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+  DELETED
+}
+
+enum FundingStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+  NOT_DEFINED
+}
+
+enum KnowledgeType {
+  FILE
+  LINK
+}
+
+// ── Organization ──────────────────────────────────────────────────────────
+
+model Organization {
   id        String   @id @default(cuid())
   name      String
-  sector    String
+  slug      String   @unique
+  plan      OrgPlan  @default(STANDARD)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users        User[]
-  sessions     Session[]
-  irlProfiles  IrlProfile[]
-  fundingRound FundingRound?
-  teamMembers  TeamMember[]
+  users          User[]
+  startups       Startup[]
+  programs       Program[]
+  knowledge      KnowledgeItem[]
+  funderProjects FunderProject[]
+
+  @@index([slug])
 }
 
+// ── User ──────────────────────────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  role           Role
+  isActive       Boolean   @default(true)
+  klangApiKey    String?
+  totpSecret     String?
+  totpEnabled    Boolean   @default(false)
+  totpVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  startup   Startup?      @relation(fields: [startupId], references: [id])
+  startupId String?
+
+  org   Organization? @relation(fields: [orgId], references: [id])
+  orgId String?
+
+  @@index([email])
+  @@index([orgId])
+}
+
+// ── Program ───────────────────────────────────────────────────────────────
+
+model Program {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  orgId       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org         Organization        @relation(fields: [orgId], references: [id])
+  questionDoc ProgramQuestionDoc?
+  startups    Startup[]
+
+  @@index([orgId])
+}
+
+model ProgramQuestionDoc {
+  id            String   @id @default(cuid())
+  fileName      String
+  storageKey    String
+  extractedText String
+  uploadedAt    DateTime @default(now())
+  uploadedBy    String
+  programId     String   @unique
+
+  program Program @relation(fields: [programId], references: [id])
+}
+
+// ── Startup ───────────────────────────────────────────────────────────────
+
+model Startup {
+  id                  String        @id @default(cuid())
+  name                String
+  sector              String
+  status              StartupStatus @default(COACHING)
+  contactEmail        String?
+  contactPhone        String?
+  orgNumber           String?
+  registeredAt        DateTime?
+  postAddress         String?
+  preferredLanguage   Language      @default(SWEDISH)
+  founderOwnershipPct Int?
+  activeOwnerPct      Int?
+  businessIdea        String?
+  aiStatus            AiStatus      @default(ON_TRACK)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  org   Organization? @relation(fields: [orgId], references: [id])
+  orgId String?
+
+  program   Program? @relation(fields: [programId], references: [id])
+  programId String?
+
+  users          User[]
+  sessions       Session[]
+  irlProfiles    IrlProfile[]
+  fundingRound   FundingRound?
+  teamMembers    TeamMember[]
+  files          StartupFile[]
+  funderProjects StartupFunderProject[]
+
+  @@index([orgId])
+  @@index([status])
+}
+
+// ── TeamMember ────────────────────────────────────────────────────────────
+
 model TeamMember {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String
-  phone     String?
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  role            String?
+  isMainContact   Boolean  @default(false)
+  hasSystemAccess Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   startup   Startup @relation(fields: [startupId], references: [id])
   startupId String
 
   @@index([startupId])
 }
+
+// ── StartupFile ───────────────────────────────────────────────────────────
+
+model StartupFile {
+  id            String   @id @default(cuid())
+  fileName      String
+  mimeType      String
+  sizeBytes     Int
+  storageKey    String
+  uploadedBy    String
+  uploadedAt    DateTime @default(now())
+  description   String?
+  extractedText String?
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String
+
+  @@index([startupId])
+}
+
+// ── KnowledgeItem ─────────────────────────────────────────────────────────
+
+model KnowledgeItem {
+  id            String        @id @default(cuid())
+  type          KnowledgeType
+  title         String
+  url           String?
+  storageKey    String?
+  fileName      String?
+  mimeType      String?
+  keywords      String[]
+  extractedText String?
+  uploadedBy    String
+  createdAt     DateTime      @default(now())
+  orgId         String
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
+// ── FunderProject ─────────────────────────────────────────────────────────
+
+model FunderProject {
+  id              String   @id @default(cuid())
+  name            String
+  funderName      String
+  periodStart     DateTime
+  periodEnd       DateTime
+  requirementDoc  String?
+  requirementText String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orgId           String
+
+  org      Organization           @relation(fields: [orgId], references: [id])
+  startups StartupFunderProject[]
+
+  @@index([orgId])
+}
+
+model StartupFunderProject {
+  id        String   @id @default(cuid())
+  joinedAt  DateTime @default(now())
+  notes     String?
+  startupId String
+  projectId String
+
+  startup Startup       @relation(fields: [startupId], references: [id])
+  project FunderProject @relation(fields: [projectId], references: [id])
+
+  @@unique([startupId, projectId])
+}
+
+// ── Session ───────────────────────────────────────────────────────────────
 
 model Session {
   id            String       @id @default(cuid())
@@ -74,13 +293,7 @@ model Session {
   @@index([startupId])
 }
 
-enum SessionPhase {
-  SOCIAL
-  IRL_CHECK
-  COACHING
-  PRIORITIZATION
-  CLOSING
-}
+// ── Transcript ────────────────────────────────────────────────────────────
 
 model Transcript {
   id              String   @id @default(cuid())
@@ -97,6 +310,8 @@ model Transcript {
   @@index([klangFileId])
 }
 
+// ── SessionSummary ────────────────────────────────────────────────────────
+
 model SessionSummary {
   id            String   @id @default(cuid())
   encryptedData String
@@ -107,6 +322,8 @@ model SessionSummary {
   session   Session @relation(fields: [sessionId], references: [id])
   sessionId String  @unique
 }
+
+// ── Todo ──────────────────────────────────────────────────────────────────
 
 model Todo {
   id          String     @id @default(cuid())
@@ -128,12 +345,7 @@ model Todo {
   @@index([sessionId])
 }
 
-enum TodoStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  DONE
-  DELETED
-}
+// ── TodoFeedback ──────────────────────────────────────────────────────────
 
 model TodoFeedback {
   id        String   @id @default(cuid())
@@ -144,6 +356,8 @@ model TodoFeedback {
   todo   Todo   @relation(fields: [todoId], references: [id])
   todoId String @unique
 }
+
+// ── IrlProfile ────────────────────────────────────────────────────────────
 
 model IrlProfile {
   id        String   @id @default(cuid())
@@ -162,6 +376,8 @@ model IrlProfile {
   @@index([startupId])
 }
 
+// ── FundingRound ──────────────────────────────────────────────────────────
+
 model FundingRound {
   id        String        @id @default(cuid())
   quarter   String
@@ -174,12 +390,7 @@ model FundingRound {
   startupId String  @unique
 }
 
-enum FundingStatus {
-  PLANNED
-  ACTIVE
-  CLOSED
-  NOT_DEFINED
-}
+// ── AgentLog ──────────────────────────────────────────────────────────────
 
 model AgentLog {
   id           String   @id @default(cuid())

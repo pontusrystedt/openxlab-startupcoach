@@ -9,26 +9,45 @@ export default async function CoachLayout({
 }) {
   const session = await requireCoach()
 
+  const isAdmin = ["SYSTEM_ADMIN", "CLIENT_ADMIN"].includes(session.user.role)
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <span className="font-semibold text-gray-900">OpenX Lab</span>
-          <Link
-            href="/dashboard"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
+          <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
             Dashboard
           </Link>
-          <Link
-            href="/startups"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
+          <Link href="/startups" className="text-sm text-gray-600 hover:text-gray-900">
             Startups
           </Link>
+          <Link href="/knowledge" className="text-sm text-gray-600 hover:text-gray-900">
+            Knowledge
+          </Link>
+          <Link href="/projects" className="text-sm text-gray-600 hover:text-gray-900">
+            Projekt
+          </Link>
+          {isAdmin && (
+            <Link href="/admin/users" className="text-sm text-gray-600 hover:text-gray-900">
+              Admin
+            </Link>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">{session.user.email}</span>
+          <Link
+            href="/settings/security"
+            className="text-sm text-gray-500 hover:text-gray-900"
+          >
+            Säkerhet
+          </Link>
+          <Link
+            href="/security"
+            className="text-sm text-gray-500 hover:text-gray-900"
+          >
+            Datasäkerhet
+          </Link>
           <form
             action={async () => {
               "use server"

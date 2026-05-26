@@ -20,6 +20,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user) return null
 
+        // Blockera inaktiva konton
+        if (!user.isActive) return null
+
         const valid = await bcrypt.compare(
           credentials.password as string,
           user.passwordHash
@@ -31,21 +34,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
           startupId: user.startupId,
+          orgId: user.orgId,
+          totpEnabled: user.totpEnabled,
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.role = (user as { role: string }).role
         token.startupId = (user as { startupId: string | null }).startupId
+        token.orgId = (user as { orgId: string | null }).orgId
+        token.totpEnabled = (user as { totpEnabled: boolean }).totpEnabled
+        token.totpVerified = false // Resettas vid ny session
+      }
+      // Uppdatera totpVerified via useSession().update()
+      if (trigger === "update" && (session as { totpVerified?: boolean })?.totpVerified === true) {
+        token.totpVerified = true
       }
       return token
     },
     async session({ session, token }) {
       session.user.role = token.role as string
       session.user.startupId = token.startupId as string | null
+      session.user.orgId = token.orgId as string | null
+      session.user.totpEnabled = token.totpEnabled as boolean
+      session.user.totpVerified = token.totpVerified as boolean
       return session
     },
   },

@@ -7,6 +7,30 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
+  // Organization
+  const org = await prisma.organization.upsert({
+    where: { slug: "ideon" },
+    create: {
+      name: "Ideon Science Park",
+      slug: "ideon",
+    },
+    update: {},
+  })
+  console.log(`  Org: ${org.name} (${org.id})`)
+
+  // Program
+  const program = await prisma.program.upsert({
+    where: { id: "prog-ideon-standard" },
+    create: {
+      id: "prog-ideon-standard",
+      orgId: org.id,
+      name: "Ideon ordinarie",
+      description: "Ordinarie coachingprogram",
+    },
+    update: {},
+  })
+  console.log(`  Program: ${program.name}`)
+
   const coachPassword = await bcrypt.hash("coach123", 12)
   const entrepreneurPassword = await bcrypt.hash("entrepreneur123", 12)
 
@@ -16,8 +40,10 @@ async function main() {
       id: "seed-startup-1",
       name: "TestStartup AB",
       sector: "MedTech",
+      orgId: org.id,
+      programId: program.id,
     },
-    update: {},
+    update: { orgId: org.id, programId: program.id },
   })
 
   await prisma.user.upsert({
@@ -26,8 +52,9 @@ async function main() {
       email: "coach@openxlab.se",
       passwordHash: coachPassword,
       role: "COACH",
+      orgId: org.id,
     },
-    update: { passwordHash: coachPassword },
+    update: { passwordHash: coachPassword, orgId: org.id },
   })
 
   await prisma.user.upsert({
@@ -37,13 +64,29 @@ async function main() {
       passwordHash: entrepreneurPassword,
       role: "ENTREPRENEUR",
       startupId: testStartup.id,
+      orgId: org.id,
     },
-    update: { passwordHash: entrepreneurPassword, startupId: testStartup.id },
+    update: {
+      passwordHash: entrepreneurPassword,
+      startupId: testStartup.id,
+      orgId: org.id,
+    },
+  })
+
+  // Koppla befintliga poster till org
+  await prisma.startup.updateMany({
+    where: { orgId: null },
+    data: { orgId: org.id, programId: program.id },
+  })
+  await prisma.user.updateMany({
+    where: { orgId: null },
+    data: { orgId: org.id },
   })
 
   console.log("Seed klar!")
   console.log("  Coach:        coach@openxlab.se / coach123")
   console.log("  Entrepreneur: founder@teststartup.se / entrepreneur123")
+  console.log(`  Org-ID: ${org.id}  (använd detta i SQL-migrationen)`)
 }
 
 main()

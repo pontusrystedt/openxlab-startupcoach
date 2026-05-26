@@ -1,6 +1,7 @@
 import { Mistral } from "@mistralai/mistralai"
 import { prisma } from "@/lib/prisma"
 import { decrypt, encrypt } from "@/lib/crypto"
+import { buildAgentContext } from "./context"
 import crypto from "crypto"
 
 const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! })
@@ -58,11 +59,18 @@ export async function runPostMeetingAgent(sessionId: string): Promise<void> {
     ? `Startupens nuvarande IRL-profil: CRL=${latestIrl.crl}, TRL=${latestIrl.trl}, BRL=${latestIrl.brl}, IPRL=${latestIrl.iprl}, FRL=${latestIrl.frl}, ORL=${latestIrl.orl}`
     : "Ingen IRL-profil registrerad än."
 
-  const userMessage = `Startup: ${session.startup.name} (${session.startup.sector})
-Session #${session.sessionNumber}
-${irlContext}
+  const mötesdatum = session.scheduledAt.toISOString().split("T")[0]
 
-Transkription:
+  // Hämta agentkontext om org finns
+  const { knowledgeText, startupFileText } = session.startup.orgId
+    ? await buildAgentContext(session.startup.orgId, session.startupId)
+    : { knowledgeText: "", startupFileText: "" }
+
+  const userMessage = `Startup: ${session.startup.name} (${session.startup.sector})
+Session #${session.sessionNumber} — datum: ${mötesdatum}
+${irlContext}
+${knowledgeText ? `\n--- Relevant kunskap från knowledge-repo ---\n${knowledgeText}\n` : ""}${startupFileText ? `--- Uppladdade dokument för denna startup ---\n${startupFileText}\n` : ""}
+--- Transkription ---
 ${transcriptText}`
 
   const inputHash = crypto.createHash("sha256").update(userMessage).digest("hex")
