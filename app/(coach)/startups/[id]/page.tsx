@@ -4,38 +4,46 @@ import Link from "next/link"
 import { IrlRadar } from "@/components/IrlRadar"
 import { notFound } from "next/navigation"
 import { StartupSections } from "./StartupSections"
+import { StartupEditForm } from "./StartupEditForm"
 
 export default async function StartupDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireCoach()
+  const session = await requireCoach()
   const { id } = await params
 
-  const startup = await prisma.startup.findUnique({
-    where: { id },
-    include: {
-      fundingRound: true,
-      irlProfiles: { orderBy: { createdAt: "desc" }, take: 2 },
-      teamMembers: { orderBy: { createdAt: "asc" } },
-      program: { select: { name: true } },
-      funderProjects: {
-        include: { project: { select: { id: true, name: true, funderName: true } } },
-      },
-      sessions: {
-        orderBy: { sessionNumber: "desc" },
-        include: {
-          _count: { select: { todos: true } },
-          summary: true,
-          todos: {
-            where: { status: { not: "DELETED" } },
-            orderBy: { priority: "asc" },
+  const [startup, programs] = await Promise.all([
+    prisma.startup.findUnique({
+      where: { id },
+      include: {
+        fundingRound: true,
+        irlProfiles: { orderBy: { createdAt: "desc" }, take: 2 },
+        teamMembers: { orderBy: { createdAt: "asc" } },
+        program: { select: { name: true } },
+        funderProjects: {
+          include: { project: { select: { id: true, name: true, funderName: true } } },
+        },
+        sessions: {
+          orderBy: { sessionNumber: "desc" },
+          include: {
+            _count: { select: { todos: true } },
+            summary: true,
+            todos: {
+              where: { status: { not: "DELETED" } },
+              orderBy: { priority: "asc" },
+            },
           },
         },
       },
-    },
-  })
+    }),
+    prisma.program.findMany({
+      where: session.user.orgId ? { orgId: session.user.orgId, isActive: true } : {},
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ])
 
   if (!startup) notFound()
 
@@ -68,6 +76,7 @@ export default async function StartupDetailPage({
           <p className="text-gray-500">{startup.sector}</p>
         </div>
         <div className="flex gap-2">
+          <StartupEditForm startup={startup} programs={programs} />
           <Link
             href={`/startups/${id}/irl`}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"

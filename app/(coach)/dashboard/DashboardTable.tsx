@@ -4,11 +4,12 @@ import { useState } from "react"
 import Link from "next/link"
 
 interface IrlProfile {
-  desirability: number
-  feasibility: number
-  viability: number
-  adaptability: number
-  impact: number
+  crl: number
+  trl: number
+  brl: number
+  iprl: number
+  frl: number
+  orl: number
 }
 
 interface FundingRound {
@@ -79,7 +80,7 @@ const AI_COLOR: Record<string, string> = {
   OFF_TRACK: "text-red-500",
 }
 
-const IRL_DIMS = ["desirability", "feasibility", "viability", "adaptability", "impact"] as const
+const IRL_DIMS = ["crl", "trl", "brl", "iprl", "frl", "orl"] as const
 
 function avgIrl(profile: IrlProfile | undefined) {
   if (!profile) return null

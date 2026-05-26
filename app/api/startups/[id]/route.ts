@@ -37,10 +37,30 @@ export async function PUT(
   const { id } = await params
   await requireCoach()
 
-  const { name, sector } = await req.json()
+  const {
+    name, sector, contactEmail, contactPhone, orgNumber,
+    registeredAt, postAddress, preferredLanguage,
+    founderOwnershipPct, activeOwnerPct, businessIdea,
+    aiStatus, programId,
+  } = await req.json()
+
   const startup = await prisma.startup.update({
     where: { id },
-    data: { name, sector },
+    data: {
+      name,
+      sector,
+      contactEmail:       contactEmail       ?? null,
+      contactPhone:       contactPhone       ?? null,
+      orgNumber:          orgNumber          ?? null,
+      registeredAt:       registeredAt       ? new Date(registeredAt) : null,
+      postAddress:        postAddress        ?? null,
+      preferredLanguage:  preferredLanguage  ?? undefined,
+      founderOwnershipPct: founderOwnershipPct != null ? Number(founderOwnershipPct) : null,
+      activeOwnerPct:     activeOwnerPct     != null ? Number(activeOwnerPct)     : null,
+      businessIdea:       businessIdea       ?? null,
+      aiStatus:           aiStatus           ?? undefined,
+      programId:          programId          ?? null,
+    },
   })
   return NextResponse.json(startup)
 }

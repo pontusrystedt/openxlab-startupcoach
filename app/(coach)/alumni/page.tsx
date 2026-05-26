@@ -21,7 +21,7 @@ export default async function AlumniPage() {
     },
   })
 
-  const IRL_DIMS = ["desirability", "feasibility", "viability", "adaptability", "impact"]
+  const IRL_DIMS = ["crl", "trl", "brl", "iprl", "frl", "orl"]
 
   function avgIrl(profile: Record<string, unknown> | null) {
     if (!profile) return null
