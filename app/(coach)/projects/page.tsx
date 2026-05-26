@@ -3,6 +3,162 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 
+interface ProjectFile {
+  id: string
+  type: string
+  fileName: string | null
+  mimeType: string | null
+  sizeBytes: number | null
+  url: string | null
+  title: string | null
+  uploadedAt: string
+}
+
+function ProjectFiles({ projectId }: { projectId: string }) {
+  const [files, setFiles] = useState<ProjectFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [showLinkForm, setShowLinkForm] = useState(false)
+  const [linkTitle, setLinkTitle] = useState("")
+  const [linkUrl, setLinkUrl] = useState("")
+  const [savingLink, setSavingLink] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/projects/${projectId}/files`)
+      .then((r) => r.json())
+      .then(setFiles)
+      .finally(() => setLoading(false))
+  }, [projectId])
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const fd = new FormData()
+    fd.append("file", file)
+    const res = await fetch(`/api/projects/${projectId}/files`, { method: "POST", body: fd })
+    if (res.ok) {
+      const record = await res.json()
+      setFiles((prev) => [record, ...prev])
+    }
+    setUploading(false)
+    e.target.value = ""
+  }
+
+  async function handleAddLink(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingLink(true)
+    const res = await fetch(`/api/projects/${projectId}/files/link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: linkTitle, url: linkUrl }),
+    })
+    if (res.ok) {
+      const record = await res.json()
+      setFiles((prev) => [record, ...prev])
+      setLinkTitle(""); setLinkUrl(""); setShowLinkForm(false)
+    }
+    setSavingLink(false)
+  }
+
+  async function handleDownload(fileId: string, fileName: string) {
+    const res = await fetch(`/api/projects/${projectId}/files/${fileId}/download`)
+    if (res.ok) {
+      const { url } = await res.json()
+      const a = document.createElement("a"); a.href = url; a.download = fileName; a.target = "_blank"; a.click()
+    }
+  }
+
+  async function handleDelete(fileId: string) {
+    await fetch(`/api/projects/${projectId}/files/${fileId}`, { method: "DELETE" })
+    setFiles((prev) => prev.filter((f) => f.id !== fileId))
+  }
+
+  function formatBytes(bytes: number) {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Ansökningar & dokument</p>
+        <div className="flex gap-3">
+          <button onClick={() => setShowLinkForm(!showLinkForm)} className="text-xs text-[#1D9E75] hover:underline">
+            + Lägg till länk
+          </button>
+          <label className={`text-xs text-[#1D9E75] hover:underline cursor-pointer ${uploading ? "opacity-50" : ""}`}>
+            {uploading ? "Laddar upp…" : "+ Ladda upp fil"}
+            <input type="file" className="hidden" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp"
+              onChange={handleUpload} disabled={uploading} />
+          </label>
+        </div>
+      </div>
+
+      {showLinkForm && (
+        <form onSubmit={handleAddLink} className="bg-gray-50 rounded-lg p-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Titel *</label>
+              <input required value={linkTitle} onChange={(e) => setLinkTitle(e.target.value)}
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">URL *</label>
+              <input required type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={savingLink}
+              className="px-3 py-1.5 bg-[#1D9E75] text-white rounded-lg text-xs font-medium disabled:opacity-50">
+              {savingLink ? "Sparar…" : "Spara"}
+            </button>
+            <button type="button" onClick={() => setShowLinkForm(false)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-100">
+              Avbryt
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <p className="text-xs text-gray-400">Laddar…</p>
+      ) : files.length === 0 ? (
+        <p className="text-xs text-gray-400">Inga filer uppladdade ännu.</p>
+      ) : (
+        <div className="divide-y divide-gray-100">
+          {files.map((f) => (
+            <div key={f.id} className="flex items-center justify-between py-1.5">
+              <div>
+                {f.type === "LINK" ? (
+                  <a href={f.url ?? "#"} target="_blank" rel="noopener noreferrer"
+                    className="text-sm text-[#1D9E75] hover:underline">🔗 {f.title ?? f.url}</a>
+                ) : (
+                  <p className="text-sm text-gray-800">📄 {f.fileName}</p>
+                )}
+                <p className="text-xs text-gray-400">
+                  {f.sizeBytes ? `${formatBytes(f.sizeBytes)} · ` : ""}
+                  {new Date(f.uploadedAt).toLocaleDateString("sv-SE")}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                {f.type === "FILE" && f.fileName && (
+                  <button onClick={() => handleDownload(f.id, f.fileName!)}
+                    className="text-xs text-[#1D9E75] hover:underline">Ladda ner</button>
+                )}
+                <button onClick={() => handleDelete(f.id)}
+                  className="text-xs text-gray-400 hover:text-red-500">Ta bort</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface Startup {
   id: string
   name: string
@@ -259,6 +415,11 @@ export default function ProjectsPage() {
                           ))}
                         </div>
                       )}
+                    </div>
+
+                    {/* Projektfiler / ansökningar */}
+                    <div className="border-t border-gray-100 pt-4">
+                      <ProjectFiles projectId={project.id} />
                     </div>
 
                     <div className="flex justify-end">

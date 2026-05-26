@@ -257,8 +257,28 @@ model FunderProject {
 
   org      Organization           @relation(fields: [orgId], references: [id])
   startups StartupFunderProject[]
+  files    FunderProjectFile[]
 
   @@index([orgId])
+}
+
+model FunderProjectFile {
+  id            String   @id @default(cuid())
+  type          String   @default("FILE") // "FILE" | "LINK"
+  fileName      String?
+  mimeType      String?
+  sizeBytes     Int?
+  storageKey    String?
+  url           String?
+  title         String?
+  uploadedBy    String
+  uploadedAt    DateTime @default(now())
+  extractedText String?
+
+  project   FunderProject @relation(fields: [projectId], references: [id])
+  projectId String
+
+  @@index([projectId])
 }
 
 model StartupFunderProject {
