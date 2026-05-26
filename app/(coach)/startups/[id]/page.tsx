@@ -19,6 +19,10 @@ export default async function StartupDetailPage({
       fundingRound: true,
       irlProfiles: { orderBy: { createdAt: "desc" }, take: 2 },
       teamMembers: { orderBy: { createdAt: "asc" } },
+      program: { select: { name: true } },
+      funderProjects: {
+        include: { project: { select: { id: true, name: true, funderName: true } } },
+      },
       sessions: {
         orderBy: { sessionNumber: "desc" },
         include: {
@@ -76,6 +80,64 @@ export default async function StartupDetailPage({
           >
             Exportera data
           </a>
+        </div>
+      </div>
+
+      {/* Grunddata */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="grid grid-cols-4 gap-6 text-sm">
+          {/* Kontakt */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Kontakt</p>
+            <div className="space-y-1">
+              {startup.contactEmail ? (
+                <p><a href={`mailto:${startup.contactEmail}`} className="text-[#1D9E75] hover:underline">{startup.contactEmail}</a></p>
+              ) : <p className="text-gray-300">–</p>}
+              {startup.contactPhone && <p className="text-gray-600">{startup.contactPhone}</p>}
+              {startup.postAddress && <p className="text-gray-500 text-xs">{startup.postAddress}</p>}
+            </div>
+          </div>
+
+          {/* Bolagsdata */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bolag</p>
+            <div className="space-y-1">
+              {startup.orgNumber && <p className="text-gray-600">Org.nr: {startup.orgNumber}</p>}
+              {startup.registeredAt && (
+                <p className="text-gray-600">Reg: {startup.registeredAt.toLocaleDateString("sv-SE")}</p>
+              )}
+              {startup.founderOwnershipPct != null && (
+                <p className="text-gray-600">Grundare: {startup.founderOwnershipPct}%</p>
+              )}
+              {startup.activeOwnerPct != null && (
+                <p className="text-gray-600">Aktiva ägare: {startup.activeOwnerPct}%</p>
+              )}
+              {!startup.orgNumber && !startup.registeredAt && <p className="text-gray-300">–</p>}
+            </div>
+          </div>
+
+          {/* Program & Projekt */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Program & Projekt</p>
+            <div className="space-y-1">
+              {startup.program && (
+                <p className="text-gray-600">📋 {startup.program.name}</p>
+              )}
+              {startup.funderProjects.length > 0 ? (
+                startup.funderProjects.map(({ project }) => (
+                  <p key={project.id} className="text-gray-600">💰 {project.funderName} – {project.name}</p>
+                ))
+              ) : !startup.program && <p className="text-gray-300">–</p>}
+            </div>
+          </div>
+
+          {/* Affärsidé */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Affärsidé</p>
+            {startup.businessIdea ? (
+              <p className="text-gray-600 text-xs leading-relaxed line-clamp-5">{startup.businessIdea}</p>
+            ) : <p className="text-gray-300">–</p>}
+          </div>
         </div>
       </div>
 
