@@ -56,6 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token
     },
     async session({ session, token }) {
+      session.user.id = token.sub!
       session.user.role = token.role as string
       session.user.startupId = token.startupId as string | null
       session.user.orgId = token.orgId as string | null
