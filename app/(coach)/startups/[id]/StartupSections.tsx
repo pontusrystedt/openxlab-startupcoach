@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { TodoList } from "@/app/components/todos/TodoList"
 
@@ -205,6 +205,116 @@ function TeamSection({ startupId, initial }: { startupId: string; initial: TeamM
   )
 }
 
+interface StartupFile {
+  id: string
+  fileName: string
+  mimeType: string
+  sizeBytes: number
+  uploadedAt: string
+  description: string | null
+}
+
+function FilesSection({ startupId }: { startupId: string }) {
+  const [files, setFiles] = useState<StartupFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/startups/${startupId}/files`)
+      .then((r) => r.json())
+      .then(setFiles)
+      .finally(() => setLoading(false))
+  }, [startupId])
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const fd = new FormData()
+    fd.append("file", file)
+    const res = await fetch(`/api/startups/${startupId}/files`, { method: "POST", body: fd })
+    if (res.ok) {
+      const record = await res.json()
+      setFiles((prev) => [record, ...prev])
+    }
+    setUploading(false)
+    e.target.value = ""
+  }
+
+  async function handleDownload(fileId: string, fileName: string) {
+    const res = await fetch(`/api/startups/${startupId}/files/${fileId}/download`)
+    if (res.ok) {
+      const { url } = await res.json()
+      const a = document.createElement("a")
+      a.href = url
+      a.download = fileName
+      a.target = "_blank"
+      a.click()
+    }
+  }
+
+  async function handleDelete(fileId: string) {
+    await fetch(`/api/startups/${startupId}/files/${fileId}`, { method: "DELETE" })
+    setFiles((prev) => prev.filter((f) => f.id !== fileId))
+  }
+
+  function formatBytes(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  return (
+    <div className="p-4 space-y-3">
+      <div className="flex justify-end">
+        <label className={`text-sm text-[#1D9E75] hover:underline cursor-pointer ${uploading ? "opacity-50" : ""}`}>
+          {uploading ? "Laddar upp…" : "+ Ladda upp fil"}
+          <input
+            type="file"
+            className="hidden"
+            accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-gray-400 text-center py-4">Laddar…</p>
+      ) : files.length === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-4">Inga filer uppladdade ännu.</p>
+      ) : (
+        <div className="divide-y divide-gray-100">
+          {files.map((f) => (
+            <div key={f.id} className="flex items-center justify-between py-2">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{f.fileName}</p>
+                <p className="text-xs text-gray-500">
+                  {formatBytes(f.sizeBytes)} · {new Date(f.uploadedAt).toLocaleDateString("sv-SE")}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleDownload(f.id, f.fileName)}
+                  className="text-xs text-[#1D9E75] hover:underline"
+                >
+                  Ladda ner
+                </button>
+                <button
+                  onClick={() => handleDelete(f.id)}
+                  className="text-xs text-gray-400 hover:text-red-500"
+                >
+                  Ta bort
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function StartupSections({ startupId, sessions, todos, teamMembers }: Props) {
   const activeTodos = todos.filter((t) => t.status !== "DELETED")
 
@@ -281,6 +391,11 @@ export function StartupSections({ startupId, sessions, todos, teamMembers }: Pro
             <TodoList todos={todos} isCoach={true} />
           )}
         </div>
+      </CollapseSection>
+
+      {/* Filer */}
+      <CollapseSection title="Filer" defaultOpen={false}>
+        <FilesSection startupId={startupId} />
       </CollapseSection>
     </div>
   )
