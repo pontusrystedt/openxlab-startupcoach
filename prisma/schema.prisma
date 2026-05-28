@@ -262,6 +262,8 @@ model FunderProject {
   org      Organization           @relation(fields: [orgId], references: [id])
   startups StartupFunderProject[]
   files    FunderProjectFile[]
+  meetings ProjectMeeting[]
+  todos    ProjectTodo[]
 
   @@index([orgId])
 }
@@ -296,6 +298,38 @@ model StartupFunderProject {
   project FunderProject @relation(fields: [projectId], references: [id])
 
   @@unique([startupId, projectId])
+}
+
+model ProjectMeeting {
+  id            String    @id @default(cuid())
+  meetingNumber Int
+  scheduledAt   DateTime
+  klangFileId   String?
+  createdAt     DateTime  @default(now())
+
+  project   FunderProject @relation(fields: [projectId], references: [id])
+  projectId String
+
+  todos ProjectTodo[]
+
+  @@index([projectId])
+}
+
+model ProjectTodo {
+  id        String    @id @default(cuid())
+  text      String
+  status    String    @default("NOT_STARTED")
+  priority  Int       @default(0)
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+
+  project   FunderProject   @relation(fields: [projectId], references: [id])
+  projectId String
+
+  meeting   ProjectMeeting? @relation(fields: [meetingId], references: [id])
+  meetingId String?
+
+  @@index([projectId])
 }
 
 // ── Session ───────────────────────────────────────────────────────────────

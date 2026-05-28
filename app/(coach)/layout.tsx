@@ -1,6 +1,6 @@
 import { requireCoach } from "@/lib/access"
 import Link from "next/link"
-import { signOut } from "@/auth"
+import SettingsDropdown from "./SettingsDropdown"
 
 export default async function CoachLayout({
   children,
@@ -44,38 +44,7 @@ export default async function CoachLayout({
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">{session.user.email}</span>
-          <Link
-            href="/settings/security"
-            className="text-sm text-gray-500 hover:text-gray-900"
-          >
-            Säkerhet
-          </Link>
-          <Link
-            href="/settings/klang"
-            className="text-sm text-gray-500 hover:text-gray-900"
-          >
-            Klang.ai
-          </Link>
-          <Link
-            href="/security"
-            className="text-sm text-gray-500 hover:text-gray-900"
-          >
-            Datasäkerhet
-          </Link>
-          <form
-            action={async () => {
-              "use server"
-              await signOut({ redirectTo: "/login" })
-            }}
-          >
-            <button
-              type="submit"
-              className="text-sm text-gray-500 hover:text-gray-900"
-            >
-              Logga ut
-            </button>
-          </form>
+          <SettingsDropdown email={session.user.email} />
         </div>
       </nav>
       <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>

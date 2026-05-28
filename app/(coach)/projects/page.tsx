@@ -188,22 +188,13 @@ const EMPTY_FORM = {
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
-  const [allStartups, setAllStartups] = useState<Startup[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [addingStartup, setAddingStartup] = useState<string | null>(null) // projectId
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/projects").then((r) => r.json()),
-      fetch("/api/startups").then((r) => r.json()),
-    ]).then(([proj, startups]) => {
-      setProjects(proj)
-      setAllStartups(startups)
-    }).finally(() => setLoading(false))
+    fetch("/api/projects").then((r) => r.json()).then(setProjects).finally(() => setLoading(false))
   }, [])
 
   async function handleCreate(e: React.FormEvent) {
@@ -233,36 +224,6 @@ export default function ProjectsPage() {
     if (!confirm("Ta bort projektet?")) return
     const res = await fetch(`/api/projects/${projectId}`, { method: "DELETE" })
     if (res.ok) setProjects((prev) => prev.filter((p) => p.id !== projectId))
-  }
-
-  async function handleAddStartup(projectId: string, startupId: string) {
-    const res = await fetch(`/api/projects/${projectId}/startups`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startupId }),
-    })
-    if (res.ok) {
-      const startup = allStartups.find((s) => s.id === startupId)!
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === projectId
-            ? { ...p, startups: [...p.startups, { startup }] }
-            : p
-        )
-      )
-      setAddingStartup(null)
-    }
-  }
-
-  async function handleRemoveStartup(projectId: string, startupId: string) {
-    await fetch(`/api/projects/${projectId}/startups/${startupId}`, { method: "DELETE" })
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? { ...p, startups: p.startups.filter((s) => s.startup.id !== startupId) }
-          : p
-      )
-    )
   }
 
   if (loading) return <p className="text-center py-16 text-gray-400">Laddar…</p>
@@ -338,98 +299,21 @@ export default function ProjectsPage() {
       ) : (
         <div className="space-y-3">
           {projects.map((project) => {
-            const linkedIds = new Set(project.startups.map((s) => s.startup.id))
-            const available = allStartups.filter((s) => !linkedIds.has(s.id))
-            const isExpanded = expandedId === project.id
-
             return (
               <div key={project.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : project.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                >
-                  <div>
+                <div className="flex items-center justify-between px-4 py-3">
+                  <Link href={`/projects/${project.id}`} className="flex-1 hover:opacity-80">
                     <p className="font-medium text-gray-900">{project.name}</p>
                     <p className="text-sm text-gray-500">{project.funderName} · {new Date(project.periodStart).toLocaleDateString("sv-SE")} – {new Date(project.periodEnd).toLocaleDateString("sv-SE")}</p>
-                  </div>
+                  </Link>
                   <div className="flex items-center gap-3">
                     <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">
                       {project.startups.length} startups
                     </span>
-                    <span className="text-gray-400 text-sm">{isExpanded ? "▲" : "▼"}</span>
+                    <button onClick={() => handleDelete(project.id)}
+                      className="text-xs text-gray-400 hover:text-red-500">Ta bort</button>
                   </div>
-                </button>
-
-                {isExpanded && (
-                  <div className="border-t border-gray-100 p-4 space-y-4">
-                    {project.requirementText && (
-                      <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{project.requirementText}</p>
-                    )}
-
-                    {/* Kopplade startups */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Kopplade startups</p>
-                        {available.length > 0 && (
-                          <button
-                            onClick={() => setAddingStartup(addingStartup === project.id ? null : project.id)}
-                            className="text-xs text-[#1D9E75] hover:underline"
-                          >
-                            + Lägg till startup
-                          </button>
-                        )}
-                      </div>
-
-                      {addingStartup === project.id && (
-                        <div className="mb-3 bg-gray-50 rounded-lg p-3">
-                          <p className="text-xs text-gray-500 mb-2">Välj startup att koppla:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {available.map((s) => (
-                              <button key={s.id}
-                                onClick={() => handleAddStartup(project.id, s.id)}
-                                className="text-xs px-3 py-1.5 border border-[#1D9E75] text-[#1D9E75] rounded-full hover:bg-[#1D9E75]/10">
-                                {s.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {project.startups.length === 0 ? (
-                        <p className="text-sm text-gray-400">Inga startups kopplade ännu.</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {project.startups.map(({ startup }) => (
-                            <div key={startup.id} className="flex items-center gap-1 bg-[#1D9E75]/10 rounded-full px-2 py-0.5">
-                              <Link href={`/startups/${startup.id}`}
-                                className="text-xs text-[#1D9E75] hover:underline">
-                                {startup.name}
-                              </Link>
-                              <button
-                                onClick={() => handleRemoveStartup(project.id, startup.id)}
-                                className="text-[#1D9E75]/50 hover:text-red-500 text-xs ml-0.5"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Projektfiler / ansökningar */}
-                    <div className="border-t border-gray-100 pt-4">
-                      <ProjectFiles projectId={project.id} />
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button onClick={() => handleDelete(project.id)}
-                        className="text-xs text-gray-400 hover:text-red-500">
-                        Ta bort projekt
-                      </button>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )
           })}
