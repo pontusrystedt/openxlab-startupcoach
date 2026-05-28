@@ -37,14 +37,22 @@ export default function KlangFileForm({ sessionId }: { sessionId: string }) {
     if (!selected) return
     setLoading(true)
 
-    await fetch(`/api/sessions/${sessionId}/klang`, {
+    const res = await fetch(`/api/sessions/${sessionId}/klang`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ klangFileId: selected }),
     })
+    const data = await res.json()
 
     setLoading(false)
-    router.refresh()
+
+    if (data.transcriptFetched) {
+      // Transkriptet hämtades direkt — agenten körs nu, vänta lite och ladda om
+      setTimeout(() => router.refresh(), 15000)
+      router.refresh()
+    } else {
+      router.refresh()
+    }
   }
 
   function formatDate(iso: string) {

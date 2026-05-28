@@ -55,13 +55,14 @@ function CollapseSection({ title, badge, defaultOpen = false, children }: {
 type KlangConversation = { id: string; title: string; created_at: string }
 
 function KlangPicker({ projectId, meetingId, onLinked }: {
-  projectId: string; meetingId: string; onLinked: (id: string) => void
+  projectId: string; meetingId: string; onLinked: (id: string, transcriptFetched: boolean) => void
 }) {
   const [conversations, setConversations] = useState<KlangConversation[]>([])
   const [selected, setSelected] = useState("")
   const [loading, setLoading] = useState(false)
   const [fetched, setFetched] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [linked, setLinked] = useState(false)
 
   async function fetchConversations() {
     setLoading(true)
@@ -75,13 +76,25 @@ function KlangPicker({ projectId, meetingId, onLinked }: {
   async function handleLink(e: React.FormEvent) {
     e.preventDefault()
     if (!selected) return
+    setLoading(true)
     const res = await fetch(`/api/projects/${projectId}/meetings/${meetingId}/klang`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ klangFileId: selected }),
     })
-    if (res.ok) onLinked(selected)
+    const data = await res.json()
+    setLoading(false)
+    if (res.ok) {
+      setLinked(true)
+      onLinked(selected, data.transcriptFetched === true)
+    }
   }
+
+  if (linked) return (
+    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+      Analyseras… (uppdatera om ~30 sek)
+    </span>
+  )
 
   if (!fetched) return (
     <button onClick={fetchConversations} disabled={loading}
@@ -107,9 +120,9 @@ function KlangPicker({ projectId, meetingId, onLinked }: {
           </option>
         ))}
       </select>
-      <button type="submit" disabled={!selected}
+      <button type="submit" disabled={!selected || loading}
         className="px-2 py-1 bg-[#1D9E75] text-white rounded text-xs disabled:opacity-50">
-        Koppla
+        {loading ? "Kopplar…" : "Koppla"}
       </button>
     </form>
   )
