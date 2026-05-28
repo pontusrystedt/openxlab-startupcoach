@@ -393,8 +393,22 @@ function FilesSection({ startupId }: { startupId: string }) {
   )
 }
 
-export function StartupSections({ startupId, sessions, todos, teamMembers }: Props) {
+export function StartupSections({ startupId, sessions: initialSessions, todos, teamMembers }: Props) {
   const activeTodos = todos.filter((t) => t.status !== "DELETED")
+  const [sessions, setSessions] = useState(initialSessions)
+  const [deleteTarget, setDeleteTarget] = useState<Session | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDeleteSession() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const res = await fetch(`/api/sessions/${deleteTarget.id}`, { method: "DELETE" })
+    setDeleting(false)
+    if (res.ok) {
+      setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id))
+    }
+    setDeleteTarget(null)
+  }
 
   return (
     <div className="space-y-3">
@@ -424,6 +438,7 @@ export function StartupSections({ startupId, sessions, todos, teamMembers }: Pro
                 <th className="px-4 py-2 text-left font-medium text-gray-600">Fas</th>
                 <th className="px-4 py-2 text-left font-medium text-gray-600">Todos</th>
                 <th className="px-4 py-2 text-left font-medium text-gray-600">Summary</th>
+                <th className="px-4 py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -451,12 +466,55 @@ export function StartupSections({ startupId, sessions, todos, teamMembers }: Pro
                       <span className="text-gray-400 text-xs">–</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => setDeleteTarget(session)}
+                      className="text-xs text-red-400 hover:text-red-600 hover:underline"
+                    >
+                      Radera
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </CollapseSection>
+
+      {/* Raderingsdialog för möten */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Radera möte</h2>
+            <p className="text-sm text-gray-600 mb-1">
+              Vill du verkligen radera{" "}
+              <strong>
+                Session #{deleteTarget.sessionNumber} —{" "}
+                {new Date(deleteTarget.scheduledAt).toLocaleDateString("sv-SE")}
+              </strong>?
+            </p>
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 my-4">
+              Transkript, sammanfattning och todos raderas permanent.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={handleDeleteSession}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? "Raderar…" : "Ja, radera"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Todos — alla från alla möten */}
       <CollapseSection title="Todos" badge={activeTodos.length} defaultOpen={false}>
