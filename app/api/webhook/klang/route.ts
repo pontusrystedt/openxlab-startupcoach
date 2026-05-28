@@ -50,14 +50,18 @@ export async function POST(req: NextRequest) {
 
   console.log("Klang webhook body:", JSON.stringify(body, null, 2))
 
-  const secret =
-    req.headers.get("x-klang-webhook-secret") ??
-    req.headers.get("x-webhook-secret") ??
-    req.headers.get("authorization")
-
-  if (secret !== process.env.KLANG_WEBHOOK_SECRET) {
-    console.warn("Webhook secret mismatch. Mottagen:", secret)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  // Kontrollera secret endast om KLANG_WEBHOOK_SECRET är satt OCH Klang faktiskt skickar den
+  // Klang:s resthooks-API skickar inte secret-headers — kontrollen är valfri
+  const configuredSecret = process.env.KLANG_WEBHOOK_SECRET
+  if (configuredSecret) {
+    const receivedSecret =
+      req.headers.get("x-klang-webhook-secret") ??
+      req.headers.get("x-webhook-secret") ??
+      req.headers.get("authorization")
+    if (receivedSecret && receivedSecret !== configuredSecret) {
+      console.warn("Webhook secret mismatch. Mottagen:", receivedSecret)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
   }
 
   const eventType = (body.event ?? body.type) as string

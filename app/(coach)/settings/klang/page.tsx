@@ -30,7 +30,7 @@ export default function KlangSettingsPage() {
     })
     setSaving(false)
     if (res.ok) {
-      setMessage({ type: "ok", text: "API-nyckel sparad." })
+      setMessage({ type: "ok", text: "API-nyckel sparad och webhook registrerad hos Klang.ai." })
       setApiKey("")
       setConfigured(true)
       const data = await res.json().catch(() => ({}))
