@@ -6,7 +6,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; mid: string }> }
 ) {
-  await requireCoach()
+  const session = await requireCoach()
   const { mid } = await params
   const { klangFileId } = await req.json()
 
@@ -14,7 +14,10 @@ export async function POST(
 
   const meeting = await prisma.projectMeeting.update({
     where: { id: mid },
-    data: { klangFileId },
+    data: {
+      klangFileId,
+      linkedBy: session.user.id,
+    },
   })
 
   return NextResponse.json(meeting)

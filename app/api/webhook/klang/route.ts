@@ -1,24 +1,42 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { encrypt } from "@/lib/crypto"
+import { encrypt, decrypt } from "@/lib/crypto"
 import { runPostMeetingAgent } from "@/lib/agents/post-meeting"
+import { runPostMeetingProjectAgent } from "@/lib/agents/post-meeting-project"
 
-// Hämta transkripttext från Klang API
-async function fetchKlangTranscript(conversationId: string): Promise<string | null> {
+// Hämta transkripttext från Klang API med given nyckel
+async function fetchKlangTranscript(
+  conversationId: string,
+  apiKey: string
+): Promise<string | null> {
   const res = await fetch(
     `https://app.klang.ai/api/v1/conversations/${conversationId}`,
-    { headers: { Authorization: `Bearer ${process.env.KLANG_API_KEY}` } }
+    { headers: { Authorization: `Bearer ${apiKey}` } }
   )
   if (!res.ok) {
     console.error(`Klang API svarade ${res.status} för konversation ${conversationId}`)
     return null
   }
   const data = await res.json()
-  // Transkriptet ligger i sources[].content där type === "transcript"
   const transcriptSource = data.sources?.find(
     (s: { type: string; content?: string }) => s.type === "transcript" && s.content
   )
   return transcriptSource?.content ?? null
+}
+
+// Hämta API-nyckel för en användare (ur DB, krypterad)
+async function getUserKlangKey(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { klangApiKey: true },
+  })
+  if (!user?.klangApiKey) return null
+  try {
+    const stored = JSON.parse(user.klangApiKey) as { encryptedText: string; iv: string; authTag: string }
+    return decrypt(stored.encryptedText, stored.iv, stored.authTag)
+  } catch {
+    return null
+  }
 }
 
 // Undantagen från auth-proxy (se proxy.ts matcher)
@@ -30,10 +48,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  // Logga alltid för felsökning
   console.log("Klang webhook body:", JSON.stringify(body, null, 2))
 
-  // Verifiera webhook-secret — Klang kan skicka det i olika headers
   const secret =
     req.headers.get("x-klang-webhook-secret") ??
     req.headers.get("x-webhook-secret") ??
@@ -44,8 +60,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // Stöd Klangs faktiska event-struktur: { event, data.id }
-  // Fallback för simulerade anrop: { type, fileId }
   const eventType = (body.event ?? body.type) as string
   const conversationId = (
     (body.data as Record<string, unknown>)?.id ?? body.fileId
@@ -61,35 +75,76 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing conversation id" }, { status: 400 })
   }
 
-  // Hitta kopplad session i vår databas
+  // ── 1. Kolla startup-session ───────────────────────────────────────────
   const transcript = await prisma.transcript.findUnique({
     where: { klangFileId: conversationId },
     include: { session: { include: { startup: true } } },
   })
 
-  if (!transcript) {
-    console.warn(`Webhook: ingen session kopplad till klangFileId=${conversationId}`)
-    return NextResponse.json({ ok: true, matched: false })
+  if (transcript) {
+    const apiKey = process.env.KLANG_API_KEY
+    if (!apiKey) {
+      console.error("KLANG_API_KEY saknas för startup-session")
+      return NextResponse.json({ error: "KLANG_API_KEY saknas" }, { status: 500 })
+    }
+
+    const transcriptText = await fetchKlangTranscript(conversationId, apiKey)
+    if (!transcriptText) {
+      return NextResponse.json({ error: "Kunde inte hämta transkript" }, { status: 502 })
+    }
+
+    const { encryptedText, iv, authTag } = encrypt(transcriptText)
+    await prisma.transcript.update({
+      where: { id: transcript.id },
+      data: { encryptedText, iv, authTag },
+    })
+
+    runPostMeetingAgent(transcript.sessionId).catch((err) =>
+      console.error("Post-meeting agent misslyckades:", err)
+    )
+
+    return NextResponse.json({ ok: true, matched: true, type: "session" })
   }
 
-  // Hämta transkripttext från Klang API
-  const transcriptText = await fetchKlangTranscript(conversationId)
-  if (!transcriptText) {
-    console.error(`Webhook: kunde inte hämta transkript för ${conversationId}`)
-    return NextResponse.json({ error: "Kunde inte hämta transkript" }, { status: 502 })
-  }
-
-  // Kryptera och spara
-  const { encryptedText, iv, authTag } = encrypt(transcriptText)
-  await prisma.transcript.update({
-    where: { id: transcript.id },
-    data: { encryptedText, iv, authTag },
+  // ── 2. Kolla projektmöte ──────────────────────────────────────────────
+  const projectMeeting = await prisma.projectMeeting.findFirst({
+    where: { klangFileId: conversationId },
   })
 
-  // Kör post-mötes-agenten asynkront
-  runPostMeetingAgent(transcript.sessionId).catch((err) =>
-    console.error("Post-meeting agent misslyckades:", err)
-  )
+  if (projectMeeting) {
+    // Använd den person som kopplade mötet, annars global nyckel
+    let apiKey: string | null = null
+    if (projectMeeting.linkedBy) {
+      apiKey = await getUserKlangKey(projectMeeting.linkedBy)
+    }
+    if (!apiKey) apiKey = process.env.KLANG_API_KEY ?? null
+    if (!apiKey) {
+      console.error("Ingen Klang API-nyckel tillgänglig för projektmöte")
+      return NextResponse.json({ error: "Ingen API-nyckel" }, { status: 500 })
+    }
 
-  return NextResponse.json({ ok: true, matched: true })
+    const transcriptText = await fetchKlangTranscript(conversationId, apiKey)
+    if (!transcriptText) {
+      return NextResponse.json({ error: "Kunde inte hämta transkript" }, { status: 502 })
+    }
+
+    const { encryptedText, iv, authTag } = encrypt(transcriptText)
+    await prisma.projectMeeting.update({
+      where: { id: projectMeeting.id },
+      data: {
+        transcriptEncrypted: encryptedText,
+        transcriptIv: iv,
+        transcriptAuthTag: authTag,
+      },
+    })
+
+    runPostMeetingProjectAgent(projectMeeting.id).catch((err) =>
+      console.error("Post-meeting project agent misslyckades:", err)
+    )
+
+    return NextResponse.json({ ok: true, matched: true, type: "project" })
+  }
+
+  console.warn(`Webhook: ingen match för klangFileId=${conversationId}`)
+  return NextResponse.json({ ok: true, matched: false })
 }

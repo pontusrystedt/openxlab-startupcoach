@@ -11,6 +11,7 @@ interface ProjectTodo {
 interface Meeting {
   id: string; meetingNumber: number; scheduledAt: string
   klangFileId: string | null; createdAt: string; todos: ProjectTodo[]
+  summaryInsight: string | null; summaryCoachNote: string | null
 }
 interface Project {
   id: string; orgId: string
@@ -267,25 +268,23 @@ export default function ProjectSections({ project, allStartups }: {
           {meetings.length === 0 ? (
             <p className="text-center py-8 text-gray-400 text-sm">Inga möten ännu</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">#</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">Datum</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-600">Klang</th>
-                  <th className="px-4 py-2"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {meetings.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-600">#{m.meetingNumber}</td>
-                    <td className="px-4 py-3 text-gray-600">
+            <div className="divide-y divide-gray-100">
+              {meetings.map((m) => (
+                <div key={m.id}>
+                  <div className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50">
+                    <span className="text-sm text-gray-600 w-6">#{m.meetingNumber}</span>
+                    <span className="text-sm text-gray-600 w-24">
                       {new Date(m.scheduledAt).toLocaleDateString("sv-SE")}
-                    </td>
-                    <td className="px-4 py-3">
-                      {m.klangFileId ? (
-                        <span className="text-xs text-green-600">Kopplat ✓</span>
+                    </span>
+                    <div className="flex-1">
+                      {m.summaryInsight ? (
+                        <span className="text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                          Analyserad ✓
+                        </span>
+                      ) : m.klangFileId ? (
+                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                          Klang kopplat — väntar på transkript…
+                        </span>
                       ) : (
                         <KlangPicker
                           projectId={project.id}
@@ -297,15 +296,22 @@ export default function ProjectSections({ project, allStartups }: {
                           }
                         />
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => setDeleteTarget(m)}
-                        className="text-xs text-red-400 hover:text-red-600 hover:underline">Radera</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <button onClick={() => setDeleteTarget(m)}
+                      className="text-xs text-red-400 hover:text-red-600 hover:underline">Radera</button>
+                  </div>
+                  {m.summaryInsight && (
+                    <div className="px-4 pb-3 space-y-1 bg-gray-50 border-t border-gray-100">
+                      <p className="text-xs font-medium text-gray-500 pt-2">Sammanfattning</p>
+                      <p className="text-sm text-gray-700">{m.summaryInsight}</p>
+                      {m.summaryCoachNote && (
+                        <p className="text-xs text-gray-400 italic">Notering: {m.summaryCoachNote}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </CollapseSection>
 

@@ -55,9 +55,13 @@ export default async function ProjectDetailPage({
           orgId: project.orgId,
           startups: project.startups.map((s) => ({ startup: s.startup })),
           meetings: project.meetings.map((m) => ({
-            ...m,
+            id: m.id,
+            meetingNumber: m.meetingNumber,
             scheduledAt: m.scheduledAt.toISOString(),
+            klangFileId: m.klangFileId,
             createdAt: m.createdAt.toISOString(),
+            summaryInsight: m.summaryInsight ?? null,
+            summaryCoachNote: m.summaryCoachNote ?? null,
             todos: m.todos.map((t) => ({
               ...t,
               dueDate: t.dueDate?.toISOString() ?? null,

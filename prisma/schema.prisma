@@ -301,11 +301,17 @@ model StartupFunderProject {
 }
 
 model ProjectMeeting {
-  id            String    @id @default(cuid())
-  meetingNumber Int
-  scheduledAt   DateTime
-  klangFileId   String?
-  createdAt     DateTime  @default(now())
+  id                  String    @id @default(cuid())
+  meetingNumber       Int
+  scheduledAt         DateTime
+  klangFileId         String?
+  linkedBy            String?   // userId som kopplade Klang-mötet
+  transcriptEncrypted String?
+  transcriptIv        String?
+  transcriptAuthTag   String?
+  summaryInsight      String?
+  summaryCoachNote    String?
+  createdAt           DateTime  @default(now())
 
   project   FunderProject @relation(fields: [projectId], references: [id])
   projectId String
@@ -313,6 +319,7 @@ model ProjectMeeting {
   todos ProjectTodo[]
 
   @@index([projectId])
+  @@index([klangFileId])
 }
 
 model ProjectTodo {
