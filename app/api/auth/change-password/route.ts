@@ -1,0 +1,36 @@
+import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/auth"
+import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
+
+export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { password } = await req.json()
+
+  if (
+    !password ||
+    password.length < 12 ||
+    !/\d/.test(password) ||
+    !/[a-zA-Z]/.test(password)
+  ) {
+    return NextResponse.json(
+      { error: "Lösenordet måste vara minst 12 tecken och innehålla både bokstäver och siffror." },
+      { status: 400 }
+    )
+  }
+
+  const hash = await bcrypt.hash(password, 12)
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: {
+      passwordHash: hash,
+      forcePasswordChange: false,
+    },
+  })
+
+  const nextStep = session.user.totpEnabled ? "dashboard" : "totp-setup"
+  return NextResponse.json({ ok: true, nextStep })
+}

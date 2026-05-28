@@ -16,15 +16,20 @@ export default function KlangFileForm({ sessionId }: { sessionId: string }) {
   const [conversations, setConversations] = useState<KlangConversation[]>([])
   const [selected, setSelected] = useState("")
   const [fetching, setFetching] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/klang/conversations")
       .then((r) => r.json())
       .then((data) => {
-        setConversations(data.data ?? [])
+        if (data.error) {
+          setFetchError(data.error)
+        } else {
+          setConversations(data.data ?? [])
+        }
         setFetching(false)
       })
-      .catch(() => setFetching(false))
+      .catch(() => { setFetchError("Kunde inte nå Klang.ai"); setFetching(false) })
   }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -53,6 +58,13 @@ export default function KlangFileForm({ sessionId }: { sessionId: string }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       {fetching ? (
         <p className="text-sm text-gray-500">Hämtar möten från Klang.ai…</p>
+      ) : fetchError ? (
+        <p className="text-sm text-red-600">
+          {fetchError}{" "}
+          {fetchError.includes("nyckel") && (
+            <a href="/settings/klang" className="underline">Konfigurera Klang.ai →</a>
+          )}
+        </p>
       ) : conversations.length === 0 ? (
         <p className="text-sm text-gray-500">Inga möten hittades i Klang.ai.</p>
       ) : (

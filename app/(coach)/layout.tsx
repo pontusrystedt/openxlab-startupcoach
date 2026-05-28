@@ -52,6 +52,12 @@ export default async function CoachLayout({
             Säkerhet
           </Link>
           <Link
+            href="/settings/klang"
+            className="text-sm text-gray-500 hover:text-gray-900"
+          >
+            Klang.ai
+          </Link>
+          <Link
             href="/security"
             className="text-sm text-gray-500 hover:text-gray-900"
           >

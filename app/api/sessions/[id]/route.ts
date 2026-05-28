@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
-import { requireEntrepreneur } from "@/lib/access"
+import { requireCoach, requireEntrepreneur } from "@/lib/access"
 
 export async function GET(
   _req: NextRequest,
@@ -25,4 +25,23 @@ export async function GET(
   await requireEntrepreneur(session.startupId)
 
   return NextResponse.json(session)
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await requireCoach()
+  const { id } = await params
+
+  const session = await prisma.session.findUnique({ where: { id } })
+  if (!session) return NextResponse.json({ error: "Hittades inte" }, { status: 404 })
+
+  // Radera relaterade poster i rätt ordning (ingen cascade i schemat)
+  await prisma.todo.deleteMany({ where: { sessionId: id } })
+  await prisma.transcript.deleteMany({ where: { sessionId: id } })
+  await prisma.sessionSummary.deleteMany({ where: { sessionId: id } })
+  await prisma.session.delete({ where: { id } })
+
+  return NextResponse.json({ ok: true })
 }

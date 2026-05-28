@@ -9,6 +9,15 @@ export default auth((req) => {
   const publicPaths = ["/api/webhook", "/_next", "/favicon.ico"]
   if (publicPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
 
+  // E-postverifiering och lösenordsbyte är tillåtna utan full autentisering
+  const authFlowPaths = [
+    "/verify-email",
+    "/change-password",
+    "/api/auth/verify-email",
+    "/api/auth/change-password",
+  ]
+  if (authFlowPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
+
   // TOTP-relaterade routes är tillåtna utan full autentisering
   const totpPaths = ["/verify-totp", "/api/auth/totp"]
   if (totpPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
@@ -18,10 +27,17 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  // Om TOTP är aktiverat och inte verifierat → verify-totp
-  if (session?.user.totpEnabled && !session.user.totpVerified) {
-    if (pathname !== "/login") {
-      return NextResponse.redirect(new URL("/verify-totp", req.url))
+  if (session) {
+    // Tvingat lösenordsbyte → /change-password
+    if (session.user.forcePasswordChange) {
+      return NextResponse.redirect(new URL("/change-password", req.url))
+    }
+
+    // Om TOTP är aktiverat och inte verifierat → verify-totp
+    if (session.user.totpEnabled && !session.user.totpVerified) {
+      if (pathname !== "/login") {
+        return NextResponse.redirect(new URL("/verify-totp", req.url))
+      }
     }
   }
 

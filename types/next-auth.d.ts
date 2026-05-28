@@ -6,11 +6,13 @@ declare module "next-auth" {
     user: {
       id: string
       email: string
+      name: string | null
       role: string
       startupId: string | null
       orgId: string | null
       totpEnabled: boolean
       totpVerified: boolean
+      forcePasswordChange: boolean
     }
   }
 }
@@ -18,9 +20,11 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     role?: string
+    name?: string | null
     startupId?: string | null
     orgId?: string | null
     totpEnabled?: boolean
     totpVerified?: boolean
+    forcePasswordChange?: boolean
   }
 }
