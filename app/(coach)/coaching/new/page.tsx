@@ -31,7 +31,7 @@ export default function NewStartupPage() {
     }
 
     const startup = await res.json()
-    router.push(`/startups/${startup.id}`)
+    router.push(`/coaching/${startup.id}`)
   }
 
   return (

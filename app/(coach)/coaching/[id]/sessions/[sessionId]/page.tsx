@@ -47,7 +47,7 @@ export default async function SessionDetailPage({
     <div className="space-y-6">
       <div>
         <Link
-          href={`/startups/${id}/sessions`}
+          href={`/coaching/${id}/sessions`}
           className="text-sm text-gray-500 hover:text-gray-700"
         >
           ← {session.startup.name} / Sessions

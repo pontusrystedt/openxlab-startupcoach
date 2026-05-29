@@ -40,7 +40,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
         <Link
-          href="/startups/new"
+          href="/coaching/new"
           className="px-4 py-2 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#178a65]"
         >
           + Ny startup

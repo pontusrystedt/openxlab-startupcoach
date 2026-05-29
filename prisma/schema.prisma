@@ -151,7 +151,7 @@ model Startup {
   id                  String        @id @default(cuid())
   name                String
   sector              String
-  status              StartupStatus @default(COACHING)
+  status              StartupStatus @default(SCREENING)
   contactEmail        String?
   contactPhone        String?
   orgNumber           String?

@@ -421,7 +421,7 @@ export function StartupSections({ startupId, sessions: initialSessions, todos, t
       <CollapseSection title="Möten" badge={sessions.length} defaultOpen={false}>
         <div className="px-4 py-3 flex justify-end border-b border-gray-50">
           <Link
-            href={`/startups/${startupId}/sessions`}
+            href={`/coaching/${startupId}/sessions`}
             className="text-xs text-[#1D9E75] hover:underline"
           >
             + Nytt möte
@@ -446,7 +446,7 @@ export function StartupSections({ startupId, sessions: initialSessions, todos, t
                 <tr key={session.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <Link
-                      href={`/startups/${startupId}/sessions/${session.id}`}
+                      href={`/coaching/${startupId}/sessions/${session.id}`}
                       className="text-[#1D9E75] hover:underline font-medium"
                     >
                       #{session.sessionNumber}

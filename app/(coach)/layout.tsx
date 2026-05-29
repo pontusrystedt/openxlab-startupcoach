@@ -22,7 +22,7 @@ export default async function CoachLayout({
           <Link href="/screening" className="text-sm text-gray-600 hover:text-gray-900">
             Screening
           </Link>
-          <Link href="/startups" className="text-sm text-gray-600 hover:text-gray-900">
+          <Link href="/coaching" className="text-sm text-gray-600 hover:text-gray-900">
             Coaching
           </Link>
           <Link href="/alumni" className="text-sm text-gray-600 hover:text-gray-900">

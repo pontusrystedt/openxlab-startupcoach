@@ -231,7 +231,7 @@ export default function ProjectSections({ project, allStartups }: {
             )}
             {startups.map(({ startup }) => (
               <div key={startup.id} className="flex items-center justify-between">
-                <Link href={`/startups/${startup.id}`} className="text-sm text-[#1D9E75] hover:underline">
+                <Link href={`/coaching/${startup.id}`} className="text-sm text-[#1D9E75] hover:underline">
                   {startup.name}
                 </Link>
                 <button onClick={() => handleRemoveStartup(startup.id)}

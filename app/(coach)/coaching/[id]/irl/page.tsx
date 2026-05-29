@@ -37,7 +37,7 @@ export default async function IrlPage({
     <div className="space-y-6">
       <div>
         <Link
-          href={`/startups/${id}`}
+          href={`/coaching/${id}`}
           className="text-sm text-gray-500 hover:text-gray-700"
         >
           ← {startup.name}

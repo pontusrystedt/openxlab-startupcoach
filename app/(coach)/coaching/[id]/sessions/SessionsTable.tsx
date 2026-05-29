@@ -60,7 +60,7 @@ export default function SessionsTable({
               <tr key={session.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/startups/${startupId}/sessions/${session.id}`}
+                    href={`/coaching/${startupId}/sessions/${session.id}`}
                     className="text-[#1D9E75] hover:underline font-medium"
                   >
                     #{session.sessionNumber}

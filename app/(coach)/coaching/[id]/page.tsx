@@ -78,7 +78,7 @@ export default async function StartupDetailPage({
         <div className="flex gap-2">
           <StartupEditForm startup={startup} programs={programs} />
           <Link
-            href={`/startups/${id}/irl`}
+            href={`/coaching/${id}/irl`}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             IRL-historik
@@ -156,7 +156,7 @@ export default async function StartupDetailPage({
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-medium text-gray-700">IRL-profil</h2>
             <Link
-              href={`/startups/${id}/irl`}
+              href={`/coaching/${id}/irl`}
               className="text-xs text-[#1D9E75] hover:underline"
             >
               Lägg till mätning

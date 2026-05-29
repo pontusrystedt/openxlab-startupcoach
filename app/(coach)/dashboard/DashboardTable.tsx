@@ -119,7 +119,7 @@ export function DashboardTable({ startups }: { startups: Startup[] }) {
                 >
                   <td className="px-4 py-3">
                     <Link
-                      href={`/startups/${startup.id}`}
+                      href={`/coaching/${startup.id}`}
                       className="font-medium text-[#1D9E75] hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >

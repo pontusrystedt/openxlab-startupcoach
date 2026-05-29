@@ -141,7 +141,7 @@ export default function ScreeningPage() {
                     {/* Åtgärder */}
                     <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                       <Link
-                        href={`/startups/${s.id}`}
+                        href={`/coaching/${s.id}`}
                         className="text-sm text-[#1D9E75] hover:underline"
                       >
                         Öppna startupprofil →

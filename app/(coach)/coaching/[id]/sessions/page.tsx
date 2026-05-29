@@ -29,7 +29,7 @@ export default async function SessionsPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <Link href={`/startups/${id}`} className="text-sm text-gray-500 hover:text-gray-700">
+          <Link href={`/coaching/${id}`} className="text-sm text-gray-500 hover:text-gray-700">
             ← {startup.name}
           </Link>
           <h1 className="text-2xl font-semibold text-gray-900 mt-1">Möten</h1>
