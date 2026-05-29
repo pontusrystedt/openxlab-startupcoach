@@ -39,8 +39,6 @@ export async function PATCH(
       (u) => u.id === userSession.user.id
     )
     if (!belongsToUser) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    // Entrepreneur kan inte ändra text
-    delete data.text
   }
 
   const updated = await prisma.todo.update({ where: { id }, data })

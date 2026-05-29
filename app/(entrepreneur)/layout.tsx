@@ -17,6 +17,9 @@ export default async function EntrepreneurLayout({
           <Link href="/my" className="text-sm text-gray-600 hover:text-gray-900">
             Dashboard
           </Link>
+          <Link href="/my/sessions" className="text-sm text-gray-600 hover:text-gray-900">
+            Möten
+          </Link>
           <Link href="/my/todos" className="text-sm text-gray-600 hover:text-gray-900">
             Todos
           </Link>
