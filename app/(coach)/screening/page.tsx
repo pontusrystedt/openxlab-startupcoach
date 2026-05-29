@@ -54,9 +54,17 @@ export default function ScreeningPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Screening</h1>
-        <p className="text-gray-500 text-sm">Startups under utvärdering – besluta om coaching eller avslut</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Screening</h1>
+          <p className="text-gray-500 text-sm">Startups under utvärdering – besluta om coaching eller avslut</p>
+        </div>
+        <Link
+          href="/coaching/new"
+          className="px-4 py-2 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#178a65]"
+        >
+          + Nytt bolag
+        </Link>
       </div>
 
       {startups.length === 0 ? (
