@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
+import { signOut } from "next-auth/react"
 
 export default function ChangePasswordForm() {
   const params = useSearchParams()
-  const router = useRouter()
   const verified = params.get("verified") === "true"
 
   const [password, setPassword] = useState("")
@@ -37,11 +37,8 @@ export default function ChangePasswordForm() {
       return
     }
 
-    if (data.nextStep === "totp-setup") {
-      router.push("/settings/security")
-    } else {
-      router.push("/dashboard")
-    }
+    // Logga ut så att nytt JWT utan forcePasswordChange utfärdas vid nästa inloggning
+    await signOut({ callbackUrl: "/login?passwordChanged=true" })
   }
 
   return (

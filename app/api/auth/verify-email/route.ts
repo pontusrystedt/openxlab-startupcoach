@@ -25,5 +25,5 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  return NextResponse.redirect(`${APP_URL}/change-password?verified=true`)
+  return NextResponse.redirect(`${APP_URL}/login?verified=true`)
 }
