@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://startupcoach.openxlab.se"
+
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token")
   if (!token) {
-    return NextResponse.redirect(new URL("/login?error=invalid-token", req.url))
+    return NextResponse.redirect(`${APP_URL}/login?error=invalid-token`)
   }
 
   const user = await prisma.user.findFirst({
@@ -12,7 +14,7 @@ export async function GET(req: NextRequest) {
   })
 
   if (!user) {
-    return NextResponse.redirect(new URL("/login?error=invalid-token", req.url))
+    return NextResponse.redirect(`${APP_URL}/login?error=invalid-token`)
   }
 
   await prisma.user.update({
@@ -23,6 +25,5 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  // Redirect till lösenordsbyte (forcePasswordChange = true vid nya konton)
-  return NextResponse.redirect(new URL("/change-password?verified=true", req.url))
+  return NextResponse.redirect(`${APP_URL}/change-password?verified=true`)
 }
