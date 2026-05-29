@@ -1,22 +1,12 @@
-import nodemailer from "nodemailer"
+import { Resend } from "resend"
 
-function getTransport() {
-  const host = process.env.SMTP_HOST ?? "smtp.office365.com"
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASS
-
-  if (!user || !pass) throw new Error("SMTP_USER och SMTP_PASS måste vara satta")
-
-  return nodemailer.createTransport({
-    host,
-    port: 587,
-    secure: false, // STARTTLS
-    auth: { user, pass },
-    tls: { ciphers: "SSLv3" },
-  })
+function getResend() {
+  const key = process.env.RESEND_API_KEY
+  if (!key) throw new Error("RESEND_API_KEY saknas")
+  return new Resend(key)
 }
 
-const FROM = process.env.EMAIL_FROM ?? process.env.SMTP_USER ?? "startupcoach@openxlab.se"
+const FROM = process.env.EMAIL_FROM ?? "startupcoach@openxlab.se"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://startupcoach.openxlab.se"
 
 export async function sendWelcomeEmail({
@@ -35,7 +25,7 @@ export async function sendWelcomeEmail({
   const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${verifyToken}`
   const roleLabel = role === "COACH" ? "Coach" : role === "CLIENT_ADMIN" ? "Administratör" : "Grundare"
 
-  await getTransport().sendMail({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: "Välkommen till OpenX Lab Startupcoach",
@@ -64,18 +54,17 @@ export async function sendWelcomeEmail({
   </a>
   <div style="border-left:3px solid #1D9E75;padding-left:16px;margin:16px 0">
     <p style="margin:0 0 4px"><strong>Steg 2 — Byt lösenord</strong></p>
-    <p style="margin:0;color:#666;font-size:14px">Du ombeds byta det tillfälliga lösenordet direkt vid inloggning. Välj ett starkt lösenord med minst 12 tecken.</p>
+    <p style="margin:0;color:#666;font-size:14px">Du ombeds byta det tillfälliga lösenordet direkt vid inloggning.</p>
   </div>
   <div style="border-left:3px solid #1D9E75;padding-left:16px;margin:16px 0">
     <p style="margin:0 0 4px"><strong>Steg 3 — Sätt upp tvåfaktorsautentisering (TOTP)</strong></p>
-    <p style="margin:0;color:#666;font-size:14px">Ladda ner <strong>Google Authenticator</strong> eller <strong>Authy</strong>. Systemet guidar dig genom QR-kodskanningen.</p>
+    <p style="margin:0;color:#666;font-size:14px">Ladda ner Google Authenticator eller Authy och skanna QR-koden.</p>
   </div>
   <div style="background:#EAF3DE;border-radius:8px;padding:16px;margin:24px 0">
-    <p style="margin:0;font-size:13px;color:#1D3A28"><strong>Säkerhetsinformation:</strong> Dela aldrig det tillfälliga lösenordet med någon annan. OpenX Lab kommer aldrig att fråga om ditt lösenord via e-post eller telefon.</p>
+    <p style="margin:0;font-size:13px;color:#1D3A28"><strong>Säkerhetsinformation:</strong> Dela aldrig det tillfälliga lösenordet. OpenX Lab kommer aldrig att fråga om ditt lösenord via e-post eller telefon.</p>
   </div>
   <p style="color:#888;font-size:13px;margin-top:32px;border-top:1px solid #EEE;padding-top:16px">
-    OpenX Lab AB · Ideon Science Park · Lund<br>
-    Frågor? Kontakta din administratör eller svara på detta mail.
+    OpenX Lab AB · Ideon Science Park · Lund
   </p>
 </body>
 </html>`,
@@ -93,7 +82,7 @@ export async function sendPasswordResetEmail({
 }) {
   const resetUrl = `${APP_URL}/reset-password?token=${resetToken}`
 
-  await getTransport().sendMail({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: "Återställ ditt lösenord — OpenX Lab Startupcoach",
@@ -109,7 +98,7 @@ export async function sendPasswordResetEmail({
   <a href="${resetUrl}" style="display:inline-block;background:#1D9E75;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;margin:16px 0">
     Återställ lösenord →
   </a>
-  <p style="color:#888;font-size:13px">Om du inte begärt detta kan du ignorera mailet. Ditt lösenord förblir oförändrat.</p>
+  <p style="color:#888;font-size:13px">Om du inte begärt detta kan du ignorera mailet.</p>
 </body>
 </html>`,
   })

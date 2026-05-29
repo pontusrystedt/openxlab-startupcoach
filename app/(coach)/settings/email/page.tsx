@@ -6,24 +6,19 @@ export default function EmailSettingsPage() {
   const [testTo, setTestTo] = useState("")
   const [testing, setTesting] = useState(false)
   const [result, setResult] = useState<{
-    ok: boolean
-    error?: string
-    stage?: string
-    config?: { host: string; user: string; port: number }
+    ok: boolean; error?: string; id?: string; from?: string
   } | null>(null)
 
   async function handleTest(e: React.FormEvent) {
     e.preventDefault()
     setTesting(true)
     setResult(null)
-
     const res = await fetch("/api/settings/smtp-test", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to: testTo }),
     })
-    const data = await res.json()
-    setResult(data)
+    setResult(await res.json())
     setTesting(false)
   }
 
@@ -32,36 +27,24 @@ export default function EmailSettingsPage() {
       <div>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">E-postinställningar</h1>
         <p className="text-sm text-gray-500">
-          Testa att SMTP-konfigurationen fungerar. Miljövariablerna{" "}
-          <code className="bg-gray-100 px-1 rounded text-xs">SMTP_USER</code>,{" "}
-          <code className="bg-gray-100 px-1 rounded text-xs">SMTP_PASS</code> och{" "}
-          <code className="bg-gray-100 px-1 rounded text-xs">SMTP_HOST</code> sätts i Coolify.
+          Systemet skickar e-post via <strong>Resend</strong>. Testa att konfigurationen fungerar.
         </p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-medium text-gray-900">Skicka testmail</h2>
-
         <form onSubmit={handleTest} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Skicka till
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Skicka till</label>
             <input
-              type="email"
-              required
-              value={testTo}
+              type="email" required value={testTo}
               onChange={(e) => setTestTo(e.target.value)}
               placeholder="din@epost.se"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
             />
           </div>
-
-          <button
-            type="submit"
-            disabled={testing}
-            className="px-4 py-2 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#178a65] disabled:opacity-50"
-          >
+          <button type="submit" disabled={testing}
+            className="px-4 py-2 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#178a65] disabled:opacity-50">
             {testing ? "Testar…" : "Skicka testmail"}
           </button>
         </form>
@@ -71,45 +54,34 @@ export default function EmailSettingsPage() {
             {result.ok ? (
               <div className="text-green-800">
                 <p className="font-medium mb-1">✓ Testmail skickat!</p>
-                <p className="text-xs">
-                  Via {result.config?.user} → {result.config?.host}:{result.config?.port}
-                </p>
+                <p className="text-xs">Från: {result.from}</p>
+                {result.id && <p className="text-xs text-green-600 font-mono">ID: {result.id}</p>}
                 <p className="text-xs mt-1">Kolla inkorgen (och skräpposten) för {testTo}.</p>
               </div>
             ) : (
               <div className="text-red-800">
-                <p className="font-medium mb-1">
-                  ✗ {result.stage === "verify" ? "Anslutningsfel" : "Kunde inte skicka"}
-                </p>
-                <p className="text-xs font-mono bg-red-100 rounded p-2 mt-1 break-all">
-                  {result.error}
-                </p>
-                {result.config && (
-                  <p className="text-xs mt-2 text-red-600">
-                    Konfiguration: {result.config.user} → {result.config.host}:{result.config.port}
-                  </p>
-                )}
-                <div className="mt-3 text-xs text-red-700 space-y-1">
-                  <p className="font-medium">Vanliga orsaker:</p>
-                  <ul className="list-disc pl-4 space-y-1">
-                    <li>SMTP AUTH inte aktiverat för kontot i Microsoft 365 Admin Center</li>
-                    <li>MFA aktiverat — kräver app-lösenord (myaccount.microsoft.com → Security → App passwords)</li>
-                    <li>Fel lösenord i SMTP_PASS</li>
-                    <li>Kontot blockerat av Microsoft pga ovanlig inloggning</li>
-                  </ul>
-                </div>
+                <p className="font-medium mb-1">✗ Misslyckades</p>
+                <p className="text-xs font-mono bg-red-100 rounded p-2 mt-1 break-all">{result.error}</p>
+                {result.from && <p className="text-xs mt-2">Avsändare: {result.from}</p>}
               </div>
             )}
           </div>
         )}
       </div>
 
-      <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 text-xs text-gray-500 space-y-1">
-        <p className="font-medium text-gray-600">Förväntade miljövariabler i Coolify:</p>
-        <p><code>SMTP_HOST</code> = <span className="text-gray-700">smtp.office365.com</span></p>
-        <p><code>SMTP_USER</code> = kontots e-postadress (t.ex. services@openxlab.se)</p>
-        <p><code>SMTP_PASS</code> = lösenord eller app-lösenord</p>
-        <p><code>EMAIL_FROM</code> = avsändaradress (valfritt, default = SMTP_USER)</p>
+      <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 text-xs text-gray-500 space-y-2">
+        <p className="font-medium text-gray-600">Konfiguration (Coolify miljövariabler):</p>
+        <p><code className="bg-gray-100 px-1 rounded">RESEND_API_KEY</code> — API-nyckel från resend.com</p>
+        <p><code className="bg-gray-100 px-1 rounded">EMAIL_FROM</code> — avsändaradress, t.ex. <span className="text-gray-700">startupcoach@openxlab.se</span></p>
+        <div className="pt-2 border-t border-gray-200">
+          <p className="font-medium text-gray-600 mb-1">Kom igång med Resend:</p>
+          <ol className="list-decimal pl-4 space-y-1">
+            <li>Skapa konto på <a href="https://resend.com" target="_blank" rel="noreferrer" className="underline text-[#1D9E75]">resend.com</a></li>
+            <li>Gå till Domains → Add domain → ange <strong>openxlab.se</strong></li>
+            <li>Lägg till de DNS-poster Resend visar i Simply.com</li>
+            <li>Kopiera API-nyckeln och lägg in som <code className="bg-gray-100 px-1 rounded">RESEND_API_KEY</code> i Coolify</li>
+          </ol>
+        </div>
       </div>
     </div>
   )
