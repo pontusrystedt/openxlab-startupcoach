@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { requireCoach } from "@/lib/access"
 
 // Page is server-guarded via layout — client component for tabs
 
