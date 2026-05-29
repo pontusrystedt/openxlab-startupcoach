@@ -24,6 +24,7 @@ export default function VerifyTotpPage() {
 
     if (res.ok) {
       // Uppdatera JWT-sessionen med totpVerified=true
+      // x_totp_ok-cookie (satt av API-routen) säkrar att middleware inte loopar
       await update({ totpVerified: true })
       router.push("/dashboard")
     } else {

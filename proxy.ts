@@ -9,7 +9,7 @@ export default auth((req) => {
   const publicPaths = ["/api/webhook", "/_next", "/favicon.ico"]
   if (publicPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
 
-  // E-postverifiering och lösenordsbyte är tillåtna utan full autentisering
+  // E-postverifiering och lösenordsbyte är tillåtna utan autentisering
   const authFlowPaths = [
     "/verify-email",
     "/change-password",
@@ -18,23 +18,27 @@ export default auth((req) => {
   ]
   if (authFlowPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
 
-  // TOTP-relaterade routes är tillåtna utan full autentisering
+  // TOTP-relaterade routes
   const totpPaths = ["/verify-totp", "/api/auth/totp"]
   if (totpPaths.some(p => pathname.startsWith(p))) return NextResponse.next()
 
-  // Ej inloggad → login (utom login-sidan själv)
+  // Ej inloggad → login
   if (!session && pathname !== "/login") {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
   if (session) {
-    // Tvingat lösenordsbyte → /change-password
-    if (session.user.forcePasswordChange) {
+    const userId = session.user.id
+
+    // Tvingat lösenordsbyte — men inte om x_pw_changed-cookie är satt för denna användare
+    const pwChanged = req.cookies.get("x_pw_changed")?.value
+    if (session.user.forcePasswordChange && pwChanged !== userId) {
       return NextResponse.redirect(new URL("/change-password", req.url))
     }
 
-    // Om TOTP är aktiverat och inte verifierat → verify-totp
-    if (session.user.totpEnabled && !session.user.totpVerified) {
+    // TOTP-verifiering — men inte om x_totp_ok-cookie är satt för denna användare
+    const totpOk = req.cookies.get("x_totp_ok")?.value
+    if (session.user.totpEnabled && !session.user.totpVerified && totpOk !== userId) {
       if (pathname !== "/login") {
         return NextResponse.redirect(new URL("/verify-totp", req.url))
       }

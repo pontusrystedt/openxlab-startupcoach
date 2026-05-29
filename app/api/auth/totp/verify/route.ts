@@ -39,5 +39,16 @@ export async function POST(req: Request) {
     data: { totpVerifiedAt: new Date() },
   })
 
-  return NextResponse.json({ ok: true })
+  const res = NextResponse.json({ ok: true })
+
+  // Kortlivad cookie som middleware kan läsa direkt — kringgår JWT-race condition
+  res.cookies.set("x_totp_ok", session.user.id, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 120,
+    path: "/",
+  })
+
+  return res
 }

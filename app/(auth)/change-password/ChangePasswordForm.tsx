@@ -77,7 +77,8 @@ export default function ChangePasswordForm() {
       return
     }
 
-    // Uppdatera JWT-token direkt — ingen utloggning behövs
+    // Uppdatera JWT-token och navigera
+    // x_pw_changed-cookie (satt av API-routen) säkrar att middleware inte loopar
     await update({ forcePasswordChange: false })
 
     if (data.nextStep === "totp-setup") {
