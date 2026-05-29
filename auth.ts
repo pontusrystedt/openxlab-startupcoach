@@ -54,9 +54,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.totpVerified = false // Resettas vid ny session
         token.forcePasswordChange = u.forcePasswordChange
       }
-      // Uppdatera totpVerified via useSession().update()
-      if (trigger === "update" && (session as { totpVerified?: boolean })?.totpVerified === true) {
-        token.totpVerified = true
+      // Uppdatera session via useSession().update()
+      if (trigger === "update") {
+        const s = session as { totpVerified?: boolean; forcePasswordChange?: boolean }
+        if (s?.totpVerified === true) token.totpVerified = true
+        if (s?.forcePasswordChange === false) token.forcePasswordChange = false
       }
       return token
     },

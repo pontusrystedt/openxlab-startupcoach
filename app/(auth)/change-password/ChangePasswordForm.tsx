@@ -1,11 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { useSearchParams, useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 
 export default function ChangePasswordForm() {
   const params = useSearchParams()
+  const router = useRouter()
+  const { update } = useSession()
   const verified = params.get("verified") === "true"
 
   const [password, setPassword] = useState("")
@@ -30,15 +32,21 @@ export default function ChangePasswordForm() {
     })
 
     const data = await res.json()
-    setLoading(false)
 
     if (!res.ok) {
       setError(data.error ?? "Något gick fel.")
+      setLoading(false)
       return
     }
 
-    // Logga ut så att nytt JWT utan forcePasswordChange utfärdas vid nästa inloggning
-    await signOut({ callbackUrl: "/login?passwordChanged=true" })
+    // Uppdatera JWT-token direkt — ingen utloggning behövs
+    await update({ forcePasswordChange: false })
+
+    if (data.nextStep === "totp-setup") {
+      router.push("/settings/security")
+    } else {
+      router.push("/dashboard")
+    }
   }
 
   return (
@@ -60,25 +68,17 @@ export default function ChangePasswordForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nytt lösenord
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nytt lösenord</label>
             <input
-              type="password"
-              required
-              value={password}
+              type="password" required value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Bekräfta lösenord
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bekräfta lösenord</label>
             <input
-              type="password"
-              required
-              value={confirm}
+              type="password" required value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1D9E75]"
             />
@@ -87,8 +87,7 @@ export default function ChangePasswordForm() {
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <button
-            type="submit"
-            disabled={loading}
+            type="submit" disabled={loading}
             className="w-full py-2 px-4 bg-[#1D9E75] text-white rounded-lg text-sm font-medium hover:bg-[#178a65] disabled:opacity-50 transition-colors"
           >
             {loading ? "Sparar…" : "Spara lösenord"}

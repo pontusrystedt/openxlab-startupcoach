@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/access"
 import Link from "next/link"
-import { signOut } from "@/auth"
+import EntrepreneurSettingsDropdown from "./EntrepreneurSettingsDropdown"
 
 export default async function EntrepreneurLayout({
   children,
@@ -17,35 +17,14 @@ export default async function EntrepreneurLayout({
           <Link href="/my" className="text-sm text-gray-600 hover:text-gray-900">
             Dashboard
           </Link>
-          <Link
-            href="/my/todos"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
+          <Link href="/my/todos" className="text-sm text-gray-600 hover:text-gray-900">
             Todos
           </Link>
-          <Link
-            href="/my/irl"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
+          <Link href="/my/irl" className="text-sm text-gray-600 hover:text-gray-900">
             IRL-profil
           </Link>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{session.user.email}</span>
-          <form
-            action={async () => {
-              "use server"
-              await signOut({ redirectTo: "/login" })
-            }}
-          >
-            <button
-              type="submit"
-              className="text-sm text-gray-500 hover:text-gray-900"
-            >
-              Logga ut
-            </button>
-          </form>
-        </div>
+        <EntrepreneurSettingsDropdown email={session.user.email} />
       </nav>
       <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>
     </div>

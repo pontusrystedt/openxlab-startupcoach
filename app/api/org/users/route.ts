@@ -102,6 +102,22 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  // Lägg automatiskt till Grundare som teammedlem på startupen
+  if (role === "ENTREPRENEUR" && startupId) {
+    const nameParts = (name as string).trim().split(/\s+/)
+    const firstName = nameParts[0] ?? name
+    const lastName = nameParts.slice(1).join(" ") || "-"
+    await prisma.teamMember.create({
+      data: {
+        startupId,
+        firstName,
+        lastName,
+        email,
+        hasSystemAccess: true,
+      },
+    })
+  }
+
   try {
     await sendWelcomeEmail({
       to: email,
