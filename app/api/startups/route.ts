@@ -25,13 +25,19 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  await requireCoach()
+  const session = await requireCoach()
 
   const { name, sector } = await req.json()
   if (!name || !sector) {
     return NextResponse.json({ error: "name och sector krävs" }, { status: 400 })
   }
 
-  const startup = await prisma.startup.create({ data: { name, sector } })
+  const startup = await prisma.startup.create({
+    data: {
+      name,
+      sector,
+      orgId: session.user.orgId ?? undefined,
+    },
+  })
   return NextResponse.json(startup, { status: 201 })
 }
