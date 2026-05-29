@@ -39,6 +39,13 @@ export default function SettingsDropdown({ email }: { email: string }) {
             Säkerhet & TOTP
           </Link>
           <Link
+            href="/settings/email"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            E-post (SMTP)
+          </Link>
+          <Link
             href="/settings/klang"
             onClick={() => setOpen(false)}
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

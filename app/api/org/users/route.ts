@@ -111,8 +111,13 @@ export async function POST(req: NextRequest) {
       role: role as AllowedRole,
     })
   } catch (err) {
-    console.error("Välkomstmail misslyckades:", err)
-    return NextResponse.json({ ...user, emailSent: false })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("Välkomstmail misslyckades:", msg)
+    return NextResponse.json({
+      ...user,
+      emailSent: false,
+      emailError: msg,
+    })
   }
 
   return NextResponse.json({ ...user, emailSent: true })

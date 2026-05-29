@@ -80,11 +80,11 @@ export default function AdminUsersPage() {
       setUsers((prev) => [...prev, data])
       setForm({ name: "", email: "", role: "COACH", startupId: "" })
       setShowForm(false)
-      setSuccessMsg(
-        data.emailSent
-          ? `Konto skapat och välkomstmail skickat till ${data.email}.`
-          : `Konto skapat för ${data.email} — välkomstmailen misslyckades.`
-      )
+      if (data.emailSent) {
+        setSuccessMsg(`Konto skapat och välkomstmail skickat till ${data.email}.`)
+      } else {
+        setError(`Konto skapat för ${data.email} — välkomstmailen misslyckades.${data.emailError ? ` Fel: ${data.emailError}` : " Kontrollera SMTP-inställningarna under Inställningar → E-post."}`)
+      }
     } else {
       setError(data.error ?? "Kunde inte skapa konto")
     }
