@@ -285,7 +285,12 @@ export default function ProjectSections({ project, allStartups }: {
               {meetings.map((m) => (
                 <div key={m.id}>
                   <div className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50">
-                    <span className="text-sm text-gray-600 w-6">#{m.meetingNumber}</span>
+                    <Link
+                      href={`/projects/${project.id}/meetings/${m.id}`}
+                      className="text-sm font-medium text-[#1D9E75] hover:underline w-6"
+                    >
+                      #{m.meetingNumber}
+                    </Link>
                     <span className="text-sm text-gray-600 w-24">
                       {new Date(m.scheduledAt).toLocaleDateString("sv-SE")}
                     </span>
