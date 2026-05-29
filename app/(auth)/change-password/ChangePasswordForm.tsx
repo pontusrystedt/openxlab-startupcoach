@@ -45,7 +45,7 @@ function PasswordInput({
 export default function ChangePasswordForm() {
   const params = useSearchParams()
   const router = useRouter()
-  const { update } = useSession()
+  const { update, data: sessionData } = useSession()
   const verified = params.get("verified") === "true"
 
   const [password, setPassword] = useState("")
@@ -93,6 +93,12 @@ export default function ChangePasswordForm() {
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
           Välj nytt lösenord
         </h1>
+
+        {sessionData?.user?.email && (
+          <p className="text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-4">
+            Konto: <span className="font-medium text-gray-700">{sessionData.user.email}</span>
+          </p>
+        )}
 
         {verified && (
           <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4">
