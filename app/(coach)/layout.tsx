@@ -40,20 +40,17 @@ export default async function CoachLayout({
             Projekt
           </Link>
 
-          {isAdmin && (
-            <>
-              <span className="text-gray-200">|</span>
-              <Link href="/admin/users" className="text-sm text-gray-600 hover:text-gray-900">
-                Användare
-              </Link>
-              <Link href="/admin/programs" className="text-sm text-gray-600 hover:text-gray-900">
-                Programs
-              </Link>
-              <Link href="/admin/agents" className="text-sm text-gray-600 hover:text-gray-900">
-                Agenter
-              </Link>
-            </>
-          )}
+          {/* DEBUG: villkoret borttaget */}
+          <span className="text-gray-200">|</span>
+          <Link href="/admin/users" className="text-sm text-gray-600 hover:text-gray-900">
+            Användare
+          </Link>
+          <Link href="/admin/programs" className="text-sm text-gray-600 hover:text-gray-900">
+            Programs
+          </Link>
+          <Link href="/admin/agents" className="text-sm text-gray-600 hover:text-gray-900">
+            Agenter
+          </Link>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs text-gray-400">{role}</span>
