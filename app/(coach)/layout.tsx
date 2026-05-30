@@ -1,6 +1,7 @@
 import { requireCoach } from "@/lib/access"
 import Link from "next/link"
 import SettingsDropdown from "./SettingsDropdown"
+import AdminDropdown from "./AdminDropdown"
 
 export default async function CoachLayout({
   children,
@@ -9,14 +10,13 @@ export default async function CoachLayout({
 }) {
   const session = await requireCoach()
 
-  const role = String(session.user.role ?? "")
-  const isAdmin = role === "SYSTEM_ADMIN" || role === "CLIENT_ADMIN"
+  const isAdmin = ["SYSTEM_ADMIN", "CLIENT_ADMIN"].includes(session.user.role)
   const totpEnabled = session.user.totpEnabled ?? false
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-wrap gap-y-2">
-        <div className="flex items-center gap-4 flex-wrap">
+      <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-6">
           <span className="font-semibold text-gray-900">OpenX Lab</span>
           <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">
             Dashboard
@@ -39,21 +39,9 @@ export default async function CoachLayout({
           <Link href="/projects" className="text-sm text-gray-600 hover:text-gray-900">
             Projekt
           </Link>
-
-          {/* DEBUG: villkoret borttaget */}
-          <span className="text-gray-200">|</span>
-          <Link href="/admin/users" className="text-sm text-gray-600 hover:text-gray-900">
-            Användare
-          </Link>
-          <Link href="/admin/programs" className="text-sm text-gray-600 hover:text-gray-900">
-            Programs
-          </Link>
-          <Link href="/admin/agents" className="text-sm text-gray-600 hover:text-gray-900">
-            Agenter
-          </Link>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-400">{role}</span>
+          {isAdmin && <AdminDropdown />}
           <SettingsDropdown email={session.user.email} totpEnabled={totpEnabled} />
         </div>
       </nav>
