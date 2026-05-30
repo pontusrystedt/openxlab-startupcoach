@@ -96,7 +96,7 @@ export default async function AlumniPage() {
                       {new Date(s.updatedAt).toLocaleDateString("sv-SE")}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link href={`/coaching/${s.id}`} className="text-xs text-[#1D9E75] hover:underline">
+                      <Link href={`/alumni/${s.id}`} className="text-xs text-[#1D9E75] hover:underline">
                         Visa →
                       </Link>
                     </td>

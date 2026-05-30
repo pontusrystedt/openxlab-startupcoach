@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { encrypt, decrypt } from "@/lib/crypto"
 import { runPostMeetingAgent } from "@/lib/agents/post-meeting"
 import { runPostMeetingProjectAgent } from "@/lib/agents/post-meeting-project"
+import { runDecisionsAgent } from "@/lib/agents/decisions-agent"
+import { runScreeningAgent } from "@/lib/agents/screening-agent"
 
 // Hämta transkripttext från Klang API med given nyckel
 async function fetchKlangTranscript(
@@ -51,7 +53,6 @@ export async function POST(req: NextRequest) {
   console.log("Klang webhook body:", JSON.stringify(body, null, 2))
 
   // Kontrollera secret endast om KLANG_WEBHOOK_SECRET är satt OCH Klang faktiskt skickar den
-  // Klang:s resthooks-API skickar inte secret-headers — kontrollen är valfri
   const configuredSecret = process.env.KLANG_WEBHOOK_SECRET
   if (configuredSecret) {
     const receivedSecret =
@@ -116,7 +117,6 @@ export async function POST(req: NextRequest) {
   })
 
   if (projectMeeting) {
-    // Använd den person som kopplade mötet, annars global nyckel
     let apiKey: string | null = null
     if (projectMeeting.linkedBy) {
       apiKey = await getUserKlangKey(projectMeeting.linkedBy)
@@ -147,6 +147,108 @@ export async function POST(req: NextRequest) {
     )
 
     return NextResponse.json({ ok: true, matched: true, type: "project" })
+  }
+
+  // ── 3. Kolla CoachMeeting ─────────────────────────────────────────────
+  const coachMeeting = await prisma.coachMeeting.findFirst({
+    where: { klangFileId: conversationId },
+  })
+
+  if (coachMeeting) {
+    const apiKey = process.env.KLANG_API_KEY ?? null
+    if (!apiKey) {
+      console.error("Ingen Klang API-nyckel för coachmöte")
+      return NextResponse.json({ error: "Ingen API-nyckel" }, { status: 500 })
+    }
+
+    const transcriptText = await fetchKlangTranscript(conversationId, apiKey)
+    if (!transcriptText) {
+      return NextResponse.json({ error: "Kunde inte hämta transkript" }, { status: 502 })
+    }
+
+    const { encryptedText, iv, authTag } = encrypt(transcriptText)
+    await prisma.coachMeeting.update({
+      where: { id: coachMeeting.id },
+      data: {
+        encryptedTranscript: encryptedText,
+        transcriptIv: iv,
+        transcriptAuthTag: authTag,
+      },
+    })
+
+    runDecisionsAgent(coachMeeting.id).catch((err) =>
+      console.error("Decisions agent misslyckades:", err)
+    )
+
+    return NextResponse.json({ ok: true, matched: true, type: "coachMeeting" })
+  }
+
+  // ── 4. Kolla AlumniEvent ──────────────────────────────────────────────
+  const alumniEvent = await prisma.alumniEvent.findFirst({
+    where: { klangFileId: conversationId },
+  })
+
+  if (alumniEvent) {
+    const apiKey = process.env.KLANG_API_KEY ?? null
+    if (!apiKey) {
+      console.error("Ingen Klang API-nyckel för alumni event")
+      return NextResponse.json({ error: "Ingen API-nyckel" }, { status: 500 })
+    }
+
+    const transcriptText = await fetchKlangTranscript(conversationId, apiKey)
+    if (!transcriptText) {
+      return NextResponse.json({ error: "Kunde inte hämta transkript" }, { status: 502 })
+    }
+
+    const { encryptedText, iv, authTag } = encrypt(transcriptText)
+    await prisma.alumniEvent.update({
+      where: { id: alumniEvent.id },
+      data: {
+        encryptedTranscript: encryptedText,
+        transcriptIv: iv,
+        transcriptAuthTag: authTag,
+      },
+    })
+
+    return NextResponse.json({ ok: true, matched: true, type: "alumniEvent" })
+  }
+
+  // ── 5. Kolla Startup screening ────────────────────────────────────────
+  const screeningStartup = await prisma.startup.findFirst({
+    where: { screeningMeetingId: conversationId },
+    select: { id: true, orgId: true, programId: true },
+  })
+
+  if (screeningStartup) {
+    const apiKey = process.env.KLANG_API_KEY ?? null
+    if (!apiKey) {
+      console.error("Ingen Klang API-nyckel för screening startup")
+      return NextResponse.json({ error: "Ingen API-nyckel" }, { status: 500 })
+    }
+
+    const transcriptText = await fetchKlangTranscript(conversationId, apiKey)
+    if (!transcriptText) {
+      return NextResponse.json({ error: "Kunde inte hämta transkript" }, { status: 502 })
+    }
+
+    const { encryptedText, iv, authTag } = encrypt(transcriptText)
+    await prisma.startup.update({
+      where: { id: screeningStartup.id },
+      data: {
+        screeningTranscriptEncrypted: encryptedText,
+        screeningTranscriptIv: iv,
+        screeningTranscriptAuthTag: authTag,
+      },
+    })
+
+    runScreeningAgent(
+      screeningStartup.id,
+      screeningStartup.programId ?? undefined
+    ).catch((err) =>
+      console.error("Screening agent misslyckades:", err)
+    )
+
+    return NextResponse.json({ ok: true, matched: true, type: "screening" })
   }
 
   console.warn(`Webhook: ingen match för klangFileId=${conversationId}`)

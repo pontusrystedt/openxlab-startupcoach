@@ -39,7 +39,7 @@ export default auth((req) => {
     // TOTP-verifiering — men inte om x_totp_ok-cookie är satt för denna användare
     const totpOk = req.cookies.get("x_totp_ok")?.value
     if (session.user.totpEnabled && !session.user.totpVerified && totpOk !== userId) {
-      if (pathname !== "/login") {
+      if (pathname !== "/login" && !pathname.includes("/meeting-support")) {
         return NextResponse.redirect(new URL("/verify-totp", req.url))
       }
     }

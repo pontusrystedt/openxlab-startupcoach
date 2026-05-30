@@ -66,6 +66,26 @@ enum KnowledgeType {
   LINK
 }
 
+enum DecisionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+  ARCHIVED
+}
+
+enum ScreeningOutcome {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AlumniEventType {
+  MEETING
+  PRESENTATION
+  NOTE
+  MILESTONE
+}
+
 // ── Organization ──────────────────────────────────────────────────────────
 
 model Organization {
@@ -82,6 +102,8 @@ model Organization {
   programs       Program[]
   knowledge      KnowledgeItem[]
   funderProjects FunderProject[]
+  coachMeetings  CoachMeeting[]
+  decisions      Decision[]
 
   @@index([slug])
 }
@@ -126,9 +148,10 @@ model Program {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  org         Organization        @relation(fields: [orgId], references: [id])
-  questionDoc ProgramQuestionDoc?
-  startups    Startup[]
+  org                Organization        @relation(fields: [orgId], references: [id])
+  questionDoc        ProgramQuestionDoc?
+  startups           Startup[]
+  screeningResponses ScreeningResponse[]
 
   @@index([orgId])
 }
@@ -165,19 +188,29 @@ model Startup {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
+  screeningOutcome             ScreeningOutcome @default(PENDING)
+  screeningMeetingId           String?          // klangFileId för screeningmötet
+  screeningTranscriptEncrypted String?
+  screeningTranscriptIv        String?
+  screeningTranscriptAuthTag   String?
+
   org   Organization? @relation(fields: [orgId], references: [id])
   orgId String?
 
   program   Program? @relation(fields: [programId], references: [id])
   programId String?
 
-  users          User[]
-  sessions       Session[]
-  irlProfiles    IrlProfile[]
-  fundingRound   FundingRound?
-  teamMembers    TeamMember[]
-  files          StartupFile[]
-  funderProjects StartupFunderProject[]
+  users               User[]
+  sessions            Session[]
+  irlProfiles         IrlProfile[]
+  fundingRound        FundingRound?
+  teamMembers         TeamMember[]
+  files               StartupFile[]
+  funderProjects      StartupFunderProject[]
+  screeningResponses  ScreeningResponse[]
+  screeningAnalysis   ScreeningAnalysis?
+  decisions           Decision[]
+  alumniEvents        AlumniEvent[]
 
   @@index([orgId])
   @@index([status])
@@ -472,4 +505,110 @@ model AgentLog {
 
   @@index([sessionId])
   @@index([agentName, agentVersion])
+}
+
+// ── ScreeningResponse ─────────────────────────────────────────────────────
+
+model ScreeningResponse {
+  id        String   @id @default(cuid())
+  question  String
+  aiAnswer  String?
+  coachEdit String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String
+
+  program   Program @relation(fields: [programId], references: [id])
+  programId String
+
+  @@index([startupId])
+}
+
+// ── ScreeningAnalysis ─────────────────────────────────────────────────────
+
+model ScreeningAnalysis {
+  id             String   @id @default(cuid())
+  strengths      String   // JSON-array
+  risks          String   // JSON-array
+  recommendation String   // "APPROVE" | "REJECT" | "UNCERTAIN"
+  reasoning      String
+  agentVersion   String   @default("v1")
+  coachFeedback  String?
+  coachStars     Int?
+  createdAt      DateTime @default(now())
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String  @unique
+}
+
+// ── CoachMeeting ──────────────────────────────────────────────────────────
+
+model CoachMeeting {
+  id                   String    @id @default(cuid())
+  title                String
+  meetingDate          DateTime
+  klangFileId          String?
+  encryptedTranscript  String?
+  transcriptIv         String?
+  transcriptAuthTag    String?
+  agentRan             Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+
+  org   Organization @relation(fields: [orgId], references: [id])
+  orgId String
+
+  decisions Decision[]
+
+  @@index([orgId])
+  @@index([meetingDate])
+}
+
+// ── Decision ──────────────────────────────────────────────────────────────
+
+model Decision {
+  id          String         @id @default(cuid())
+  text        String
+  comment     String?
+  status      DecisionStatus @default(NOT_STARTED)
+  priority    Int            @default(1)
+  agentSource String?
+  archivedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  meeting   CoachMeeting @relation(fields: [meetingId], references: [id])
+  meetingId String
+
+  startup   Startup? @relation(fields: [startupId], references: [id])
+  startupId String?
+
+  org   Organization @relation(fields: [orgId], references: [id])
+  orgId String
+
+  @@index([orgId])
+  @@index([startupId])
+  @@index([meetingId])
+}
+
+// ── AlumniEvent ───────────────────────────────────────────────────────────
+
+model AlumniEvent {
+  id                   String          @id @default(cuid())
+  type                 AlumniEventType
+  title                String
+  description          String?
+  eventDate            DateTime
+  klangFileId          String?
+  encryptedTranscript  String?
+  transcriptIv         String?
+  transcriptAuthTag    String?
+  createdAt            DateTime        @default(now())
+
+  startup   Startup @relation(fields: [startupId], references: [id])
+  startupId String
+
+  @@index([startupId])
 }
