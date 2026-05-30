@@ -102,7 +102,10 @@ export default async function LiveSessionPage({
             availableAgents={panelAgents.map((a) => ({
               slug: a.slug,
               name: a.name,
+              title: a.title,
               description: a.description,
+              avatarStyle: a.avatarStyle,
+              avatarSeed: a.avatarSeed,
             }))}
           />
         </div>

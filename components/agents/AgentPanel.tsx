@@ -1,11 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import { AgentCard } from "./AgentCard"
 
 interface Agent {
   slug: string
   name: string
+  title?: string | null
   description: string
+  avatarStyle?: string | null
+  avatarSeed?: string | null
 }
 
 interface AgentWhisper {
@@ -82,42 +86,36 @@ export function AgentPanel({ startupId, sessionId, availableAgents }: Props) {
     }
   }
 
+  const activeAgent = availableAgents.find((a) => a.slug === activeSlug)
+
   return (
     <div className="flex flex-col h-full">
-      {/* Agentväljare */}
-      <div className="p-2 border-b border-gray-100">
-        <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+      {/* Agentväljare — kort */}
+      <div className="p-2 border-b border-gray-100 space-y-1.5 overflow-y-auto max-h-64">
+        <div className="text-xs font-medium text-gray-400 uppercase tracking-wide px-1 mb-1">
           Specialister
         </div>
-        <div className="flex flex-wrap gap-1">
-          {availableAgents.map((agent) => (
-            <button
-              key={agent.slug}
-              onClick={() =>
-                setActiveSlug(activeSlug === agent.slug ? null : agent.slug)
-              }
-              title={agent.description}
-              className={`text-xs px-2 py-1 rounded-full border transition-colors ${
-                activeSlug === agent.slug
-                  ? "bg-amber-50 border-amber-400 text-amber-800"
-                  : "border-gray-200 text-gray-500 hover:border-gray-300"
-              }`}
-            >
-              {agent.name}
-            </button>
-          ))}
-          {availableAgents.length === 0 && (
-            <p className="text-xs text-gray-400">Inga agenter konfigurerade</p>
-          )}
-        </div>
+        {availableAgents.map((agent) => (
+          <AgentCard
+            key={agent.slug}
+            agent={{ ...agent, isActive: true, isSystemAgent: false }}
+            selected={activeSlug === agent.slug}
+            onSelect={() =>
+              setActiveSlug(activeSlug === agent.slug ? null : agent.slug)
+            }
+          />
+        ))}
+        {availableAgents.length === 0 && (
+          <p className="text-xs text-gray-400 text-center py-2">
+            Inga agenter konfigurerade
+          </p>
+        )}
       </div>
 
       {/* Frågeformulär */}
-      {activeSlug && (
+      {activeSlug && activeAgent && (
         <div className="p-2 border-b border-gray-100 bg-amber-50">
-          <div className="text-xs text-amber-700 mb-1 font-medium">
-            {availableAgents.find((a) => a.slug === activeSlug)?.name}
-          </div>
+          <div className="text-xs text-amber-700 mb-1 font-medium">{activeAgent.name}</div>
           <textarea
             value={question}
             onChange={(e) => setQuestion(e.target.value)}

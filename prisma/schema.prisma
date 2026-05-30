@@ -638,6 +638,12 @@ model AgentRegistry {
   outputFormat        String       @default("markdown")
   maxTokens           Int          @default(1000)
   sortOrder           Int          @default(0)
+  title               String?
+  bio                 String?
+  personality         String?
+  avatarStyle         String       @default("lorelei")
+  avatarSeed          String?
+  createdBy           String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   orgId               String?

@@ -6,6 +6,20 @@ import crypto from "crypto"
 
 const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! })
 
+function buildPersonalityPrefix(agent: {
+  name: string
+  title: string | null
+  bio: string | null
+  personality: string | null
+}): string {
+  if (!agent.bio && !agent.personality && !agent.title) return ""
+  const parts: string[] = []
+  if (agent.title) parts.push(`Du spelar rollen som ${agent.name} — ${agent.title}.`)
+  if (agent.bio) parts.push(`Din bakgrund: ${agent.bio}`)
+  if (agent.personality) parts.push(`Din personlighet och kommunikationsstil: ${agent.personality}`)
+  return parts.join("\n") + "\n\n---\n\n"
+}
+
 export interface AgentRunOptions {
   agentSlug: string
   startupId: string
@@ -64,10 +78,12 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 
   const inputHash = crypto.createHash("sha256").update(fullUserMessage).digest("hex")
 
+  const fullSystemPrompt = buildPersonalityPrefix(agent) + agent.systemPrompt
+
   const response = await client.chat.complete({
     model: "mistral-large-latest",
     messages: [
-      { role: "system", content: agent.systemPrompt },
+      { role: "system", content: fullSystemPrompt },
       { role: "user", content: fullUserMessage },
     ],
     temperature: 0.3,
