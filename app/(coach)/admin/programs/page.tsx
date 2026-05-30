@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 
 interface QuestionDoc {
   fileName: string
@@ -100,7 +101,7 @@ export default function ProgramsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Program</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Programs</h1>
           <p className="text-gray-500 text-sm">Coachingprogram med frågedokument för screening</p>
         </div>
         <button
@@ -208,6 +209,12 @@ export default function ProgramsPage() {
                     >
                       Redigera
                     </button>
+                    <Link
+                      href={`/admin/programs/${program.id}`}
+                      className="text-xs text-gray-500 hover:text-gray-900"
+                    >
+                      Detaljer →
+                    </Link>
                   </div>
                 </div>
               )}

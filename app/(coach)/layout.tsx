@@ -10,6 +10,7 @@ export default async function CoachLayout({
   const session = await requireCoach()
 
   const isAdmin = ["SYSTEM_ADMIN", "CLIENT_ADMIN"].includes(session.user.role)
+  const totpEnabled = session.user.totpEnabled ?? false
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,17 +38,21 @@ export default async function CoachLayout({
           <Link href="/projects" className="text-sm text-gray-600 hover:text-gray-900">
             Projekt
           </Link>
+
           {isAdmin && (
-            <Link href="/admin/users" className="text-sm text-gray-600 hover:text-gray-900">
-              Användare
-            </Link>
+            <>
+              <span className="text-gray-200">|</span>
+              <Link href="/admin/users" className="text-sm text-gray-600 hover:text-gray-900">
+                Användare
+              </Link>
+              <Link href="/admin/programs" className="text-sm text-gray-600 hover:text-gray-900">
+                Programs
+              </Link>
+            </>
           )}
-          <Link href="/admin/programs" className="text-sm text-gray-600 hover:text-gray-900">
-            Program
-          </Link>
         </div>
         <div className="flex items-center gap-4">
-          <SettingsDropdown email={session.user.email} />
+          <SettingsDropdown email={session.user.email} totpEnabled={totpEnabled} />
         </div>
       </nav>
       <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
