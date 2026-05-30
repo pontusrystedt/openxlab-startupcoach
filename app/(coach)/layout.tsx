@@ -9,7 +9,8 @@ export default async function CoachLayout({
 }) {
   const session = await requireCoach()
 
-  const isAdmin = ["SYSTEM_ADMIN", "CLIENT_ADMIN"].includes(session.user.role)
+  const role = String(session.user.role ?? "")
+  const isAdmin = role === "SYSTEM_ADMIN" || role === "CLIENT_ADMIN"
   const totpEnabled = session.user.totpEnabled ?? false
 
   return (
@@ -55,6 +56,7 @@ export default async function CoachLayout({
           )}
         </div>
         <div className="flex items-center gap-4">
+          <span className="text-xs text-gray-400">{role}</span>
           <SettingsDropdown email={session.user.email} totpEnabled={totpEnabled} />
         </div>
       </nav>
