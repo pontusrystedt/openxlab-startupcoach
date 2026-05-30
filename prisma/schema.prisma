@@ -93,6 +93,11 @@ enum AgentTrigger {
   DURING_MEETING
 }
 
+enum AgentType {
+  PROCESS
+  SUBJECT_MATTER
+}
+
 // ── Organization ──────────────────────────────────────────────────────────
 
 model Organization {
@@ -638,6 +643,7 @@ model AgentRegistry {
   outputFormat        String       @default("markdown")
   maxTokens           Int          @default(1000)
   sortOrder           Int          @default(0)
+  agentType           AgentType    @default(SUBJECT_MATTER)
   title               String?
   bio                 String?
   personality         String?

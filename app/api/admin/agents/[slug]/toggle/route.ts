@@ -14,6 +14,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Agenten hittades inte" }, { status: 404 })
   }
 
+  if (agent.agentType === "PROCESS") {
+    return NextResponse.json(
+      { error: "Processagenter kan inte inaktiveras" },
+      { status: 403 }
+    )
+  }
+
   if (agent.isSystemAgent) {
     return NextResponse.json(
       { error: "Systemagenter kan inte inaktiveras" },

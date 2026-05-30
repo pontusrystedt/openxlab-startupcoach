@@ -22,6 +22,7 @@ interface Agent {
   avatarSeed: string | null
   isActive: boolean
   isSystemAgent: boolean
+  agentType: "PROCESS" | "SUBJECT_MATTER"
   sortOrder: number
 }
 
@@ -76,9 +77,27 @@ export default function AdminAgentsPage() {
     setEditAgent(null)
   }
 
+  function toFormInitial(agent: Agent): Partial<AgentFormData> {
+    return {
+      slug: agent.slug,
+      name: agent.name,
+      title: agent.title ?? "",
+      description: agent.description,
+      bio: agent.bio ?? "",
+      personality: agent.personality ?? "",
+      systemPrompt: agent.systemPrompt,
+      knowledgeCollection: agent.knowledgeCollection,
+      trigger: agent.trigger,
+      maxTokens: agent.maxTokens,
+      avatarStyle: agent.avatarStyle,
+      avatarSeed: agent.avatarSeed ?? "",
+    }
+  }
+
   if (loading) return <p className="text-center py-16 text-gray-400">Laddar…</p>
 
   if (view === "new" || view === "edit") {
+    const isProcess = editAgent?.agentType === "PROCESS"
     return (
       <div className="max-w-2xl">
         <div className="flex items-center gap-3 mb-6">
@@ -91,24 +110,8 @@ export default function AdminAgentsPage() {
         </div>
         <AgentForm
           isNew={view === "new"}
-          initial={
-            editAgent
-              ? {
-                  slug: editAgent.slug,
-                  name: editAgent.name,
-                  title: editAgent.title ?? "",
-                  description: editAgent.description,
-                  bio: editAgent.bio ?? "",
-                  personality: editAgent.personality ?? "",
-                  systemPrompt: editAgent.systemPrompt,
-                  knowledgeCollection: editAgent.knowledgeCollection,
-                  trigger: editAgent.trigger,
-                  maxTokens: editAgent.maxTokens,
-                  avatarStyle: editAgent.avatarStyle,
-                  avatarSeed: editAgent.avatarSeed ?? "",
-                }
-              : {}
-          }
+          isProcess={isProcess}
+          initial={editAgent ? toFormInitial(editAgent) : {}}
           onSave={handleSave}
           onCancel={goBack}
         />
@@ -116,19 +119,18 @@ export default function AdminAgentsPage() {
     )
   }
 
-  const sorted = [...agents].sort((a, b) => a.sortOrder - b.sortOrder)
-  const activeCount = agents.filter((a) => a.isActive).length
-  const inactiveCount = agents.length - activeCount
+  const processAgents = [...agents]
+    .filter((a) => a.agentType === "PROCESS")
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+
+  const subjectAgents = [...agents]
+    .filter((a) => a.agentType === "SUBJECT_MATTER")
+    .sort((a, b) => a.sortOrder - b.sortOrder)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Agenter</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {activeCount} aktiva · {inactiveCount} på bänken
-          </p>
-        </div>
+        <h1 className="text-2xl font-semibold text-gray-900">Agenter</h1>
         <button
           onClick={() => setView("new")}
           className="px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800"
@@ -137,27 +139,60 @@ export default function AdminAgentsPage() {
         </button>
       </div>
 
-      <div className="space-y-3">
-        {sorted.map((agent) => (
-          <AgentCard
-            key={agent.slug}
-            agent={agent}
-            showBio
-            onToggle={() => handleToggle(agent.slug)}
-            onEdit={() => {
-              setEditAgent(agent)
-              setView("edit")
-            }}
-          />
-        ))}
-        {agents.length === 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <p className="text-gray-400 text-sm">
-              Inga agenter hittades. Kör seed-SQL i databasen.
-            </p>
-          </div>
+      {/* Processagenter */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Processagenter</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Dessa agenter är en del av plattformens kärnfunktion och körs automatiskt.
+            De kan inte inaktiveras.
+          </p>
+        </div>
+        {processAgents.length === 0 ? (
+          <p className="text-sm text-gray-400">
+            Inga processagenter hittades — kör seed-SQL.
+          </p>
+        ) : (
+          processAgents.map((agent) => (
+            <AgentCard
+              key={agent.slug}
+              agent={{ ...agent, isSystemAgent: true }}
+              showBio
+              onEdit={() => {
+                setEditAgent(agent)
+                setView("edit")
+              }}
+            />
+          ))
         )}
-      </div>
+      </section>
+
+      {/* Specialistagenter */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Specialistagenter</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Kallas in av coach vid behov. Du kan aktivera, inaktivera och skapa nya
+            agenter.
+          </p>
+        </div>
+        {subjectAgents.length === 0 ? (
+          <p className="text-sm text-gray-400">Inga specialistagenter ännu.</p>
+        ) : (
+          subjectAgents.map((agent) => (
+            <AgentCard
+              key={agent.slug}
+              agent={agent}
+              showBio
+              onToggle={() => handleToggle(agent.slug)}
+              onEdit={() => {
+                setEditAgent(agent)
+                setView("edit")
+              }}
+            />
+          ))
+        )}
+      </section>
     </div>
   )
 }

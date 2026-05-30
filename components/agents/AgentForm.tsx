@@ -44,6 +44,7 @@ export interface AgentFormData {
 interface Props {
   initial?: Partial<AgentFormData>
   isNew?: boolean
+  isProcess?: boolean
   onSave: (data: AgentFormData) => Promise<void>
   onCancel: () => void
 }
@@ -66,7 +67,7 @@ function Field({
   )
 }
 
-export function AgentForm({ initial = {}, isNew = false, onSave, onCancel }: Props) {
+export function AgentForm({ initial = {}, isNew = false, isProcess = false, onSave, onCancel }: Props) {
   const [form, setForm] = useState<AgentFormData>({
     slug: "",
     name: "",
@@ -225,47 +226,65 @@ export function AgentForm({ initial = {}, isNew = false, onSave, onCancel }: Pro
       {/* Teknisk konfiguration */}
       <section className="space-y-3">
         <h3 className="text-sm font-medium text-gray-900">Teknisk konfiguration</h3>
-        <Field
-          label="Systemprompt *"
-          hint="Agentens instruktioner. CV och personlighet läggs till automatiskt."
-        >
-          <textarea
-            value={form.systemPrompt}
-            onChange={(e) => set("systemPrompt", e.target.value)}
-            placeholder="Du är en erfaren... Analysera... Ge råd om... Svara på svenska."
-            className="input font-mono text-xs"
-            rows={6}
-          />
-        </Field>
-        <Field label="Trigger — när kan agenten kallas in?">
-          <select
-            value={form.trigger}
-            onChange={(e) => set("trigger", e.target.value)}
-            className="input"
+
+        {isProcess ? (
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs text-gray-400 mb-1 font-medium uppercase tracking-wide">
+              Systemprompt
+            </p>
+            <p className="text-xs text-gray-500 italic">
+              Hanteras av OpenX Lab — kontakta oss för ändringar.
+            </p>
+          </div>
+        ) : (
+          <Field
+            label="Systemprompt *"
+            hint="Agentens instruktioner. CV och personlighet läggs till automatiskt."
           >
-            {TRIGGERS.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field
-          label="Knowledge-samling"
-          hint="Vilken samling i Knowledge-repot läser agenten?"
-        >
-          <select
-            value={form.knowledgeCollection}
-            onChange={(e) => set("knowledgeCollection", e.target.value)}
-            className="input"
-          >
-            {COLLECTIONS.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+            <textarea
+              value={form.systemPrompt}
+              onChange={(e) => set("systemPrompt", e.target.value)}
+              placeholder="Du är en erfaren... Analysera... Ge råd om... Svara på svenska."
+              className="input font-mono text-xs"
+              rows={6}
+            />
+          </Field>
+        )}
+
+        {!isProcess && (
+          <>
+            <Field label="Trigger — när kan agenten kallas in?">
+              <select
+                value={form.trigger}
+                onChange={(e) => set("trigger", e.target.value)}
+                className="input"
+              >
+                {TRIGGERS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label="Knowledge-samling"
+              hint="Vilken samling i Knowledge-repot läser agenten?"
+            >
+              <select
+                value={form.knowledgeCollection}
+                onChange={(e) => set("knowledgeCollection", e.target.value)}
+                className="input"
+              >
+                {COLLECTIONS.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
+        )}
+
         <Field label="Max tokens" hint="Längd på agentens svar. 1000 ≈ 750 ord.">
           <input
             type="number"
