@@ -9,7 +9,14 @@ interface AgentContext {
 export async function buildAgentContext(
   orgId: string,
   startupId: string,
+  agentCollection?: string
 ): Promise<AgentContext> {
+  // Bygg collections-filter: alltid 'general', plus agentens samling
+  const collections = ["general"]
+  if (agentCollection && agentCollection !== "general") {
+    collections.push(agentCollection)
+  }
+
   // Hitta projektId:n som denna startup tillhör
   const projectLinks = await prisma.startupFunderProject.findMany({
     where: { startupId },
@@ -19,10 +26,14 @@ export async function buildAgentContext(
 
   const [knowledgeItems, startupFiles, projectFiles] = await Promise.all([
     prisma.knowledgeItem.findMany({
-      where: { orgId, extractedText: { not: null } },
+      where: {
+        orgId,
+        extractedText: { not: null },
+        collections: { hasSome: collections },
+      },
       orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { title: true, extractedText: true, keywords: true },
+      take: 8,
+      select: { title: true, extractedText: true, keywords: true, collections: true },
     }),
     prisma.startupFile.findMany({
       where: { startupId, extractedText: { not: null } },

@@ -39,7 +39,7 @@ export default async function EntrepreneurDashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-900">{startup.name}</h1>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Aktiva todos */}
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">

@@ -52,9 +52,17 @@ export default async function SessionDetailPage({
         >
           ← {session.startup.name} / Sessions
         </Link>
-        <h1 className="text-2xl font-semibold text-gray-900 mt-1">
-          Session #{session.sessionNumber}
-        </h1>
+        <div className="flex items-center gap-3 mt-1">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Session #{session.sessionNumber}
+          </h1>
+          <Link
+            href={`/coaching/${id}/sessions/${sessionId}/live`}
+            className="px-3 py-1 text-xs bg-amber-500 text-white rounded-full hover:bg-amber-600 font-medium"
+          >
+            ▶ Live-panel
+          </Link>
+        </div>
         <p className="text-gray-500 text-sm">
           {new Date(session.scheduledAt).toLocaleDateString("sv-SE")} · {session.phase}
         </p>

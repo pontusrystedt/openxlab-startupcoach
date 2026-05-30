@@ -15,6 +15,10 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const file = formData.get("file") as File | null
   const title = (formData.get("title") as string | null) ?? file?.name ?? "Namnlös fil"
+  const collectionsRaw = formData.get("collections") as string | null
+  const collections = collectionsRaw
+    ? (JSON.parse(collectionsRaw) as string[])
+    : ["general"]
 
   if (!file) return NextResponse.json({ error: "No file" }, { status: 400 })
   if (file.size > 20 * 1024 * 1024) {
@@ -42,6 +46,7 @@ export async function POST(req: NextRequest) {
       mimeType: file.type,
       storageKey,
       keywords,
+      collections,
       extractedText: extractedText || null,
       uploadedBy: session.user.id,
     },

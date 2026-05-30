@@ -103,7 +103,7 @@ export function TodoItem({ todo, isCoach, onDelete }: Props) {
         isDeleted ? "opacity-40" : "opacity-100"
       } ${isDone ? "bg-green-50 border-green-200" : "bg-white border-gray-200"}`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col sm:flex-row items-start gap-3">
         <span className="text-xs font-medium text-gray-400 mt-1 min-w-[20px]">
           #{todo.priority}
         </span>

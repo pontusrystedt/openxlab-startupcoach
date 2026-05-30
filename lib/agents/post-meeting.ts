@@ -2,6 +2,7 @@ import { Mistral } from "@mistralai/mistralai"
 import { prisma } from "@/lib/prisma"
 import { decrypt, encrypt } from "@/lib/crypto"
 import { buildAgentContext } from "./context"
+import { runAgent } from "./agent-runner"
 import crypto from "crypto"
 
 const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! })
@@ -147,4 +148,29 @@ ${transcriptText}`
       },
     }),
   ])
+
+  // Kör eventuella POST_MEETING-agenter asynkront
+  if (session.startup.orgId) {
+    const postMeetingAgents = await prisma.agentRegistry.findMany({
+      where: {
+        trigger: "POST_MEETING",
+        isActive: true,
+        OR: [{ orgId: session.startup.orgId }, { orgId: null }],
+      },
+    })
+
+    for (const agent of postMeetingAgents) {
+      runAgent({
+        agentSlug: agent.slug,
+        startupId: session.startupId,
+        orgId: session.startup.orgId,
+        userMessage: `Analysera detta möte (session #${session.sessionNumber}) och ge din specialistbedömning baserat på transkriptionen.`,
+        sessionId,
+        trigger: "post_meeting",
+        encryptOutput: false,
+      }).catch((err: unknown) =>
+        console.error(`Post-meeting agent '${agent.slug}' misslyckades:`, err)
+      )
+    }
+  }
 }

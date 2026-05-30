@@ -86,6 +86,13 @@ enum AlumniEventType {
   MILESTONE
 }
 
+enum AgentTrigger {
+  ALWAYS
+  ON_DEMAND
+  POST_MEETING
+  DURING_MEETING
+}
+
 // ── Organization ──────────────────────────────────────────────────────────
 
 model Organization {
@@ -97,13 +104,15 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users          User[]
-  startups       Startup[]
-  programs       Program[]
-  knowledge      KnowledgeItem[]
-  funderProjects FunderProject[]
-  coachMeetings  CoachMeeting[]
-  decisions      Decision[]
+  users            User[]
+  startups         Startup[]
+  programs         Program[]
+  knowledge        KnowledgeItem[]
+  funderProjects   FunderProject[]
+  coachMeetings    CoachMeeting[]
+  decisions        Decision[]
+  agentRegistries  AgentRegistry[]
+  agentInvocations AgentInvocation[]
 
   @@index([slug])
 }
@@ -268,6 +277,7 @@ model KnowledgeItem {
   fileName      String?
   mimeType      String?
   keywords      String[]
+  collections   String[]      @default(["general"])
   extractedText String?
   uploadedBy    String
   createdAt     DateTime      @default(now())
@@ -611,4 +621,57 @@ model AlumniEvent {
   startupId String
 
   @@index([startupId])
+}
+
+// ── AgentRegistry ─────────────────────────────────────────────────────────
+
+model AgentRegistry {
+  id                  String       @id @default(cuid())
+  slug                String       @unique
+  name                String
+  description         String
+  systemPrompt        String
+  knowledgeCollection String       @default("general")
+  trigger             AgentTrigger @default(ON_DEMAND)
+  isActive            Boolean      @default(true)
+  isSystemAgent       Boolean      @default(false)
+  outputFormat        String       @default("markdown")
+  maxTokens           Int          @default(1000)
+  sortOrder           Int          @default(0)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  orgId               String?
+
+  org Organization? @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+  @@index([isActive])
+}
+
+// ── AgentInvocation ───────────────────────────────────────────────────────
+
+model AgentInvocation {
+  id              String   @id @default(cuid())
+  agentSlug       String
+  sessionId       String?
+  meetingId       String?
+  startupId       String
+  trigger         String
+  inputHash       String
+  outputHash      String
+  encryptedOutput String?
+  outputIv        String?
+  outputAuthTag   String?
+  rawOutput       String?
+  latencyMs       Int
+  coachFeedback   String?
+  coachStars      Int?
+  createdAt       DateTime @default(now())
+  orgId           String
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([startupId])
+  @@index([agentSlug])
+  @@index([sessionId])
 }

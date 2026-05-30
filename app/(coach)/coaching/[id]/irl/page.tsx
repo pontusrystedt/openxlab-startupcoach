@@ -3,6 +3,7 @@ import { requireCoach } from "@/lib/access"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { IrlRadar } from "@/components/IrlRadar"
+import { IrlTrendChart } from "@/components/irl/IrlTrendChart"
 import IrlForm from "./IrlForm"
 
 export default async function IrlPage({
@@ -61,6 +62,18 @@ export default async function IrlPage({
           <IrlForm startupId={id} />
         </div>
       </div>
+
+      {startup.irlProfiles.length >= 2 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h2 className="font-medium text-gray-900 mb-4">IRL-trend över tid</h2>
+          <IrlTrendChart
+            profiles={startup.irlProfiles.map((p) => ({
+              ...p,
+              createdAt: p.createdAt.toISOString(),
+            }))}
+          />
+        </div>
+      )}
 
       {startup.irlProfiles.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

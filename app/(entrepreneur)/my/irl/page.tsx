@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/access"
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { IrlRadar } from "@/components/IrlRadar"
+import { IrlTrendChart } from "@/components/irl/IrlTrendChart"
 
 export default async function EntrepreneurIrlPage() {
   await requireAuth()
@@ -41,6 +42,18 @@ export default async function EntrepreneurIrlPage() {
           <p className="text-center text-gray-400 py-12">Ingen IRL-profil ännu</p>
         )}
       </div>
+
+      {profiles.length >= 2 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h2 className="font-medium text-gray-900 mb-4 hidden sm:block">IRL-trend</h2>
+          <IrlTrendChart
+            profiles={profiles.map((p) => ({
+              ...p,
+              createdAt: p.createdAt.toISOString(),
+            }))}
+          />
+        </div>
+      )}
 
       {profiles.length > 1 && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
