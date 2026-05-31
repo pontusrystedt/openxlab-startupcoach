@@ -29,12 +29,19 @@ export async function POST(
   const { id } = await params
   await requireCoach()
 
-  const { sessionNumber, scheduledAt, phase } = await req.json()
-  if (!sessionNumber || !scheduledAt) {
-    return NextResponse.json(
-      { error: "sessionNumber och scheduledAt krävs" },
-      { status: 400 }
-    )
+  const { sessionNumber: providedNumber, scheduledAt, phase } = await req.json()
+  if (!scheduledAt) {
+    return NextResponse.json({ error: "scheduledAt krävs" }, { status: 400 })
+  }
+
+  let sessionNumber = providedNumber
+  if (!sessionNumber) {
+    const last = await prisma.session.findFirst({
+      where: { startupId: id },
+      orderBy: { sessionNumber: "desc" },
+      select: { sessionNumber: true },
+    })
+    sessionNumber = (last?.sessionNumber ?? 0) + 1
   }
 
   const session = await prisma.session.create({

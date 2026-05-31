@@ -23,6 +23,7 @@ export default async function SessionDetailPage({
         orderBy: { priority: "asc" },
         include: { feedback: true },
       },
+      meetingQuestions: { select: { id: true } },
     },
   })
 
@@ -52,20 +53,34 @@ export default async function SessionDetailPage({
         >
           ← {session.startup.name} / Sessions
         </Link>
-        <div className="flex items-center gap-3 mt-1">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Session #{session.sessionNumber}
-          </h1>
-          <Link
-            href={`/coaching/${id}/sessions/${sessionId}/live`}
-            className="px-3 py-1 text-xs bg-amber-500 text-white rounded-full hover:bg-amber-600 font-medium"
-          >
-            ▶ Live-panel
-          </Link>
-        </div>
+        <h1 className="text-2xl font-semibold text-gray-900 mt-1">
+          Session #{session.sessionNumber}
+        </h1>
         <p className="text-gray-500 text-sm">
           {new Date(session.scheduledAt).toLocaleDateString("sv-SE")} · {session.phase}
         </p>
+        <div className="flex gap-3 mt-3">
+          <Link
+            href={`/coaching/${id}/sessions/${sessionId}/brief`}
+            className="px-4 py-2 border border-gray-200 text-sm rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            📋 Mötesbrief
+            {session.briefGeneratedAt && (
+              <span className="text-xs text-gray-400">
+                {new Date(session.briefGeneratedAt).toLocaleDateString("sv-SE")}
+              </span>
+            )}
+            {!session.briefGeneratedAt && (
+              <span className="text-xs text-amber-600">Ej genererad</span>
+            )}
+          </Link>
+          <Link
+            href={`/coaching/${id}/sessions/${sessionId}/live`}
+            className="px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800"
+          >
+            ▶ Live-stöd
+          </Link>
+        </div>
       </div>
 
       {/* Klang.ai koppling */}

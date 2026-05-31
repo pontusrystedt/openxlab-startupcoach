@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { requireCoach } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 
-export async function GET() {
+export async function GET(_req?: Request) {
   const session = await requireCoach()
 
   if (!session.user.orgId) {

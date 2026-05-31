@@ -404,9 +404,17 @@ model Session {
   startup   Startup @relation(fields: [startupId], references: [id])
   startupId String
 
-  transcript Transcript?
-  summary    SessionSummary?
-  todos      Todo[]
+  briefGeneratedAt  DateTime?
+  encryptedBrief    String?
+  briefIv           String?
+  briefAuthTag      String?
+  liveNotes         String?
+  checkedQuestions  String[]  @default([])
+
+  transcript        Transcript?
+  summary           SessionSummary?
+  todos             Todo[]
+  meetingQuestions  MeetingQuestion[]
 
   @@index([startupId])
 }
@@ -628,6 +636,23 @@ model AlumniEvent {
   startupId String
 
   @@index([startupId])
+}
+
+// ── MeetingQuestion ───────────────────────────────────────────────────────
+
+model MeetingQuestion {
+  id        String   @id @default(cuid())
+  text      String
+  category  String   // 'followup' | 'irl_gap' | 'explore' | 'specialist'
+  agentSlug String?
+  priority  Int      @default(1)
+  isChecked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  sessionId String
+
+  session   Session  @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
 }
 
 // ── KnowledgeCollection ───────────────────────────────────────────────────
