@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { requireCoach } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 import AgenterPageClient from "@/components/agents/AgenterPageClient"

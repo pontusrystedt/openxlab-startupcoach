@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { requireAuth } from "@/lib/access"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
