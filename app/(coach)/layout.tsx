@@ -36,6 +36,9 @@ export default async function CoachLayout({
           <Link href="/knowledge" className="text-sm text-gray-600 hover:text-gray-900">
             Knowledge
           </Link>
+          <Link href="/agenter" className="text-sm text-gray-600 hover:text-gray-900">
+            Agenter
+          </Link>
           <Link href="/projects" className="text-sm text-gray-600 hover:text-gray-900">
             Projekt
           </Link>

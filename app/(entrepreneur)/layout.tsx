@@ -26,6 +26,9 @@ export default async function EntrepreneurLayout({
           <Link href="/my/irl" className="text-sm text-gray-600 hover:text-gray-900">
             IRL-profil
           </Link>
+          <Link href="/my/agenter" className="text-sm text-gray-600 hover:text-gray-900">
+            Agenter
+          </Link>
         </div>
         <EntrepreneurSettingsDropdown email={session.user.email} />
       </nav>

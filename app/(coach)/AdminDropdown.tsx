@@ -41,13 +41,6 @@ export default function AdminDropdown() {
           >
             Programs
           </Link>
-          <Link
-            href="/admin/agents"
-            onClick={() => setOpen(false)}
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            Agenter
-          </Link>
         </div>
       )}
     </div>
