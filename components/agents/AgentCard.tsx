@@ -10,6 +10,7 @@ interface Agent {
   avatarStyle?: string | null
   avatarSeed?: string | null
   isSystemAgent: boolean
+  tier?: string | null
 }
 
 interface Props {
@@ -46,11 +47,16 @@ export function AgentCard({
           size={48}
         />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-gray-900 text-sm">{agent.name}</span>
             {!agent.isActive && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                 På bänken
+              </span>
+            )}
+            {agent.tier && agent.tier !== "standard" && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
+                {agent.tier === "premium" ? "Premium" : agent.tier}
               </span>
             )}
           </div>

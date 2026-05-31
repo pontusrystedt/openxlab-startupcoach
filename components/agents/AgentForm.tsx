@@ -39,12 +39,14 @@ export interface AgentFormData {
   maxTokens: number
   avatarStyle: string
   avatarSeed: string
+  tier: string
 }
 
 interface Props {
   initial?: Partial<AgentFormData>
   isNew?: boolean
   isProcess?: boolean
+  isSystemAdmin?: boolean
   onSave: (data: AgentFormData) => Promise<void>
   onCancel: () => void
 }
@@ -67,7 +69,7 @@ function Field({
   )
 }
 
-export function AgentForm({ initial = {}, isNew = false, isProcess = false, onSave, onCancel }: Props) {
+export function AgentForm({ initial = {}, isNew = false, isProcess = false, isSystemAdmin = false, onSave, onCancel }: Props) {
   const [form, setForm] = useState<AgentFormData>({
     slug: "",
     name: "",
@@ -81,6 +83,7 @@ export function AgentForm({ initial = {}, isNew = false, isProcess = false, onSa
     maxTokens: 1000,
     avatarStyle: "lorelei",
     avatarSeed: "",
+    tier: "standard",
     ...initial,
   })
   const [saving, setSaving] = useState(false)
@@ -296,6 +299,20 @@ export function AgentForm({ initial = {}, isNew = false, isProcess = false, onSa
             className="input w-32"
           />
         </Field>
+
+        {isSystemAdmin && (
+          <Field label="Tier" hint="Kontrollerar vilka organisationer som ser agenten.">
+            <select
+              value={form.tier}
+              onChange={(e) => set("tier", e.target.value)}
+              className="input w-40"
+            >
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </Field>
+        )}
       </section>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

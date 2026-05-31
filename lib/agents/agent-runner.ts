@@ -132,9 +132,16 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 }
 
 export async function getAvailableAgents(orgId: string) {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: { agentTiers: true },
+  })
+  const allowedTiers = org?.agentTiers ?? ["standard"]
+
   return prisma.agentRegistry.findMany({
     where: {
       isActive: true,
+      tier: { in: allowedTiers },
       OR: [{ orgId }, { orgId: null }],
     },
     orderBy: { sortOrder: "asc" },

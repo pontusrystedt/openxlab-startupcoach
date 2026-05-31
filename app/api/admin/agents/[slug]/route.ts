@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma"
 const SUBJECT_MATTER_FIELDS = [
   "name", "title", "description", "bio", "personality",
   "systemPrompt", "knowledgeCollection", "trigger",
-  "maxTokens", "avatarStyle", "avatarSeed", "sortOrder",
+  "maxTokens", "avatarStyle", "avatarSeed", "sortOrder", "tier",
 ] as const
 
 const PROCESS_FIELDS = [

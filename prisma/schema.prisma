@@ -104,8 +104,9 @@ model Organization {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
-  plan      OrgPlan  @default(STANDARD)
-  isActive  Boolean  @default(true)
+  plan        OrgPlan  @default(STANDARD)
+  agentTiers  String[] @default(["standard"])
+  isActive    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -644,6 +645,7 @@ model AgentRegistry {
   maxTokens           Int          @default(1000)
   sortOrder           Int          @default(0)
   agentType           AgentType    @default(SUBJECT_MATTER)
+  tier                String       @default("standard")
   title               String?
   bio                 String?
   personality         String?
