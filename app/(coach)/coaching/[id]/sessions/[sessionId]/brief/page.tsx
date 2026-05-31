@@ -103,13 +103,6 @@ export default async function BriefPage({
                 hour: "2-digit",
                 minute: "2-digit",
               })}
-              {" "}·{" "}
-              <button
-                onClick={() => {}}
-                className="text-[#1D9E75] hover:underline"
-              >
-                {/* Regenerera via client action */}
-              </button>
             </p>
           </div>
 
