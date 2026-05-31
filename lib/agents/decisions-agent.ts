@@ -61,7 +61,7 @@ export async function runDecisionsAgent(meetingId: string): Promise<void> {
 
   // Hämta knowledgeText från orgId
   const { knowledgeText } = meeting.org
-    ? await buildAgentContext(meeting.orgId, "")
+    ? await buildAgentContext(meeting.orgId, "", ["general"])
     : { knowledgeText: "" }
 
   // Bygg startup-lista för matchning

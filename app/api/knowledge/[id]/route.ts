@@ -18,13 +18,36 @@ export async function DELETE(
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   if (item.storageKey) {
-    try {
-      await deleteFile(item.storageKey)
-    } catch {
-      // Fortsätt oavsett om fil-radering misslyckas
-    }
+    try { await deleteFile(item.storageKey) } catch { /* fortsätt */ }
   }
 
   await prisma.knowledgeItem.delete({ where: { id } })
   return NextResponse.json({ ok: true })
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await requireCoach()
+  const { id } = await params
+
+  if (!session.user.orgId) return NextResponse.json({ error: "Ingen organisation" }, { status: 403 })
+
+  const item = await prisma.knowledgeItem.findFirst({
+    where: { id, orgId: session.user.orgId! },
+  })
+  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  const { collections } = await req.json()
+  if (!Array.isArray(collections)) {
+    return NextResponse.json({ error: "collections måste vara en array" }, { status: 400 })
+  }
+
+  const updated = await prisma.knowledgeItem.update({
+    where: { id },
+    data: { collections },
+  })
+
+  return NextResponse.json(updated)
 }

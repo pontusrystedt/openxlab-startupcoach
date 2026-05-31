@@ -24,6 +24,7 @@ interface Agent {
   isSystemAgent: boolean
   agentType: "PROCESS" | "SUBJECT_MATTER"
   tier: string
+  defaultCollections: string[]
   sortOrder: number
 }
 
@@ -93,6 +94,7 @@ export default function AdminAgentsPage({ isSystemAdmin = false }: { isSystemAdm
       avatarStyle: agent.avatarStyle,
       avatarSeed: agent.avatarSeed ?? "",
       tier: agent.tier ?? "standard",
+      defaultCollections: agent.defaultCollections ?? ["general"],
     }
   }
 

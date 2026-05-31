@@ -65,7 +65,7 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
   const { knowledgeText, startupFileText } = await buildAgentContext(
     orgId,
     startupId,
-    agent.knowledgeCollection
+    agent.defaultCollections.length > 0 ? agent.defaultCollections : [agent.knowledgeCollection]
   )
 
   const fullUserMessage = [

@@ -99,7 +99,7 @@ export async function runScreeningAgent(
 
   // Hämta knowledge-kontext
   const { knowledgeText } = startup.orgId
-    ? await buildAgentContext(startup.orgId, startupId)
+    ? await buildAgentContext(startup.orgId, startupId, ["general", "screening", "deeptech"])
     : { knowledgeText: "" }
 
   const questionsText = questions

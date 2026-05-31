@@ -64,7 +64,7 @@ export async function runPostMeetingAgent(sessionId: string): Promise<void> {
 
   // Hämta agentkontext om org finns
   const { knowledgeText, startupFileText, projectFileText } = session.startup.orgId
-    ? await buildAgentContext(session.startup.orgId, session.startupId)
+    ? await buildAgentContext(session.startup.orgId, session.startupId, ["general", "product", "market"])
     : { knowledgeText: "", startupFileText: "", projectFileText: "" }
 
   const userMessage = `Startup: ${session.startup.name} (${session.startup.sector})

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AgentAvatar } from "./AgentAvatar"
 
 const AVATAR_STYLES = [
@@ -40,6 +40,7 @@ export interface AgentFormData {
   avatarStyle: string
   avatarSeed: string
   tier: string
+  defaultCollections: string[]
 }
 
 interface Props {
@@ -84,8 +85,19 @@ export function AgentForm({ initial = {}, isNew = false, isProcess = false, isSy
     avatarStyle: "lorelei",
     avatarSeed: "",
     tier: "standard",
+    defaultCollections: ["general"],
     ...initial,
   })
+  const [availableCollections, setAvailableCollections] = useState<
+    Array<{ slug: string; name: string }>
+  >([])
+
+  useEffect(() => {
+    fetch("/api/knowledge/collections")
+      .then((r) => r.json())
+      .then((data) => setAvailableCollections(data))
+      .catch(() => {})
+  }, [])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
@@ -299,6 +311,51 @@ export function AgentForm({ initial = {}, isNew = false, isProcess = false, isSy
             className="input w-32"
           />
         </Field>
+
+        {availableCollections.length > 0 && (
+          <Field
+            label="Kunskapssamlingar"
+            hint="Generellt är alltid med. Max 2 ytterligare (totalt 3)."
+          >
+            <div className="flex flex-wrap gap-2">
+              {/* General — alltid på, kan ej avbockas */}
+              <label className="flex items-center gap-1 text-xs opacity-60 cursor-not-allowed">
+                <input type="checkbox" checked readOnly className="rounded" />
+                Generellt (alltid)
+              </label>
+              {availableCollections
+                .filter((c) => c.slug !== "general")
+                .map((c) => {
+                  const selected = form.defaultCollections.filter((s) => s !== "general")
+                  const isChecked = form.defaultCollections.includes(c.slug)
+                  const maxReached = selected.length >= 2 && !isChecked
+                  return (
+                    <label
+                      key={c.slug}
+                      className={`flex items-center gap-1 text-xs ${maxReached ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={maxReached}
+                        onChange={() => {
+                          const next = isChecked
+                            ? form.defaultCollections.filter((s) => s !== c.slug)
+                            : [...form.defaultCollections, c.slug]
+                          setForm((prev) => ({ ...prev, defaultCollections: next }))
+                        }}
+                        className="rounded"
+                      />
+                      {c.name}
+                    </label>
+                  )
+                })}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {form.defaultCollections.filter((s) => s !== "general").length}/2 valda
+            </p>
+          </Field>
+        )}
 
         {isSystemAdmin && (
           <Field label="Tier" hint="Kontrollerar vilka organisationer som ser agenten.">

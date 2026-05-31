@@ -6,11 +6,12 @@ const SUBJECT_MATTER_FIELDS = [
   "name", "title", "description", "bio", "personality",
   "systemPrompt", "knowledgeCollection", "trigger",
   "maxTokens", "avatarStyle", "avatarSeed", "sortOrder", "tier",
+  "defaultCollections",
 ] as const
 
 const PROCESS_FIELDS = [
   "name", "title", "description", "bio", "personality",
-  "avatarStyle", "avatarSeed", "maxTokens",
+  "avatarStyle", "avatarSeed", "maxTokens", "defaultCollections",
 ] as const
 
 export async function PUT(

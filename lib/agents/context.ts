@@ -9,13 +9,10 @@ interface AgentContext {
 export async function buildAgentContext(
   orgId: string,
   startupId: string,
-  agentCollection?: string
+  agentCollections: string[] = ["general"]
 ): Promise<AgentContext> {
-  // Bygg collections-filter: alltid 'general', plus agentens samling
-  const collections = ["general"]
-  if (agentCollection && agentCollection !== "general") {
-    collections.push(agentCollection)
-  }
+  // Säkerställ att 'general' alltid ingår
+  const collections = Array.from(new Set(["general", ...agentCollections]))
 
   // Hitta projektId:n som denna startup tillhör
   const projectLinks = await prisma.startupFunderProject.findMany({

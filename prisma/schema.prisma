@@ -110,15 +110,16 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users            User[]
-  startups         Startup[]
-  programs         Program[]
-  knowledge        KnowledgeItem[]
-  funderProjects   FunderProject[]
-  coachMeetings    CoachMeeting[]
-  decisions        Decision[]
-  agentRegistries  AgentRegistry[]
-  agentInvocations AgentInvocation[]
+  users               User[]
+  startups            Startup[]
+  programs            Program[]
+  knowledge           KnowledgeItem[]
+  funderProjects      FunderProject[]
+  coachMeetings       CoachMeeting[]
+  decisions           Decision[]
+  agentRegistries     AgentRegistry[]
+  agentInvocations    AgentInvocation[]
+  knowledgeCollections KnowledgeCollection[]
 
   @@index([slug])
 }
@@ -629,6 +630,22 @@ model AlumniEvent {
   @@index([startupId])
 }
 
+// ── KnowledgeCollection ───────────────────────────────────────────────────
+
+model KnowledgeCollection {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  isGlobal    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  orgId       String?
+
+  org Organization? @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
 // ── AgentRegistry ─────────────────────────────────────────────────────────
 
 model AgentRegistry {
@@ -646,6 +663,7 @@ model AgentRegistry {
   sortOrder           Int          @default(0)
   agentType           AgentType    @default(SUBJECT_MATTER)
   tier                String       @default("standard")
+  defaultCollections  String[]     @default(["general"])
   title               String?
   bio                 String?
   personality         String?

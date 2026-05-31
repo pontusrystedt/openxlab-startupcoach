@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { requireCoach } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await requireCoach()
 
   if (!session.user.orgId) {
@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
       fileName: true,
       mimeType: true,
       keywords: true,
+      collections: true,
+      uploadedBy: true,
       createdAt: true,
     },
   })
