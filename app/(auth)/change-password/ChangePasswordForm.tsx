@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
+import { signOut, useSession } from "next-auth/react"
 
 function PasswordInput({
   value, onChange, placeholder,
@@ -44,8 +44,7 @@ function PasswordInput({
 
 export default function ChangePasswordForm() {
   const params = useSearchParams()
-  const router = useRouter()
-  const { update, data: sessionData } = useSession()
+  const { data: sessionData } = useSession()
   const verified = params.get("verified") === "true"
 
   const [password, setPassword] = useState("")
@@ -77,15 +76,12 @@ export default function ChangePasswordForm() {
       return
     }
 
-    // Uppdatera JWT-token och navigera
-    // x_pw_changed-cookie (satt av API-routen) säkrar att middleware inte loopar
-    await update({ forcePasswordChange: false })
-
-    if (data.nextStep === "totp-setup") {
-      router.push("/settings/security")
-    } else {
-      router.push("/dashboard")
-    }
+    // Tvinga omloggning — ger en fräsch JWT där forcePasswordChange=false
+    // läses direkt från databasen. Eliminerar race condition med JWT-update.
+    await signOut({
+      redirect: true,
+      callbackUrl: "/login?passwordChanged=true",
+    })
   }
 
   return (

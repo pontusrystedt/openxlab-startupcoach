@@ -1,8 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 
 export default function TotpSetupClient({ totpEnabled: initialTotpEnabled }: { totpEnabled: boolean }) {
+  const { update } = useSession()
   const [step, setStep] = useState<"idle" | "scanning" | "confirming" | "done">(
     initialTotpEnabled ? "done" : "idle"
   )
@@ -45,6 +47,7 @@ export default function TotpSetupClient({ totpEnabled: initialTotpEnabled }: { t
     if (res.ok) {
       setStep("done")
       setTotpActive(true)
+      await update({ totpEnabled: true })
     } else {
       setError("Felaktig kod — försök igen")
     }
@@ -63,6 +66,7 @@ export default function TotpSetupClient({ totpEnabled: initialTotpEnabled }: { t
     setQrDataUrl(null)
     setSecretKey(null)
     setTotpActive(false)
+    await update({ totpEnabled: false })
     setLoading(false)
   }
 

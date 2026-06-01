@@ -56,9 +56,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       // Uppdatera session via useSession().update()
       if (trigger === "update") {
-        const s = session as { totpVerified?: boolean; forcePasswordChange?: boolean }
+        const s = session as { totpVerified?: boolean; forcePasswordChange?: boolean; totpEnabled?: boolean }
         if (s?.totpVerified === true) token.totpVerified = true
         if (s?.forcePasswordChange === false) token.forcePasswordChange = false
+        if (s?.totpEnabled === true) token.totpEnabled = true
+        if (s?.totpEnabled === false) token.totpEnabled = false
       }
       return token
     },
