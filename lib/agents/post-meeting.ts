@@ -173,7 +173,7 @@ ${transcriptText}`
         trigger: "post_meeting",
         encryptOutput: false,
       }).catch((err: unknown) =>
-        console.error(`Post-meeting agent '${agent.slug}' misslyckades:`, err)
+        console.error(`Post-meeting agent '${template.slug}' misslyckades:`, err)
       )
     }
   }
