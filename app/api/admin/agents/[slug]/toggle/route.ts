@@ -10,6 +10,10 @@ export async function PATCH(
   const orgId = session.user.orgId
   const { slug } = await params
 
+  if (!orgId) {
+    return NextResponse.json({ error: "Ingen organisation kopplad" }, { status: 403 })
+  }
+
   const template = await prisma.agentTemplate.findUnique({
     where: { slug },
     include: { agentConfigs: { where: { orgId } } },
