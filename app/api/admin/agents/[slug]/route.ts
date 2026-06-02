@@ -2,34 +2,36 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireClientAdmin } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 
-const SUBJECT_MATTER_FIELDS = [
-  "name", "title", "description", "bio", "personality",
-  "systemPrompt", "knowledgeCollection", "trigger",
-  "maxTokens", "avatarStyle", "avatarSeed", "sortOrder", "tier",
-  "defaultCollections",
+// Fält som ClientAdmin får ändra på SUBJECT_MATTER-agenter (via AgentConfig)
+const CONFIG_FIELDS = [
+  "displayName", "systemPromptOverride", "assignedCollections", "isActive",
 ] as const
 
-const PROCESS_FIELDS = [
-  "name", "title", "description", "bio", "personality",
-  "avatarStyle", "avatarSeed", "maxTokens", "defaultCollections",
+// Fält som ClientAdmin får ändra på PROCESS-agenter (begränsat)
+const PROCESS_CONFIG_FIELDS = [
+  "displayName", "systemPromptOverride",
 ] as const
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  await requireClientAdmin()
+  const session = await requireClientAdmin()
+  const orgId = session.user.orgId
   const { slug } = await params
 
-  const agent = await prisma.agentRegistry.findUnique({ where: { slug } })
-  if (!agent) {
+  const template = await prisma.agentTemplate.findUnique({
+    where: { slug },
+    include: { agentConfigs: { where: { orgId } } },
+  })
+  if (!template) {
     return NextResponse.json({ error: "Agenten hittades inte" }, { status: 404 })
   }
 
   const data = await req.json()
 
   // Processagenter kan inte inaktiveras
-  if (agent.agentType === "PROCESS" && "isActive" in data) {
+  if (template.agentType === "PROCESS" && "isActive" in data && data.isActive === false) {
     return NextResponse.json(
       { error: "Processagenter kan inte inaktiveras" },
       { status: 403 }
@@ -37,22 +39,34 @@ export async function PUT(
   }
 
   const allowedFields =
-    agent.agentType === "PROCESS" ? PROCESS_FIELDS : SUBJECT_MATTER_FIELDS
+    template.agentType === "PROCESS" ? PROCESS_CONFIG_FIELDS : CONFIG_FIELDS
 
   const updateData: Record<string, unknown> = {}
   for (const field of allowedFields) {
     if (field in data) updateData[field] = data[field]
   }
+  if (updateData["displayName"] === "") updateData["displayName"] = template.name
 
-  // Rensa tomma strängar → null för valfria fält
-  for (const f of ["title", "bio", "personality", "avatarSeed"] as const) {
-    if (updateData[f] === "") updateData[f] = null
+  const config = template.agentConfigs[0]
+
+  if (config) {
+    const updated = await prisma.agentConfig.update({
+      where: { id: config.id },
+      data: updateData,
+    })
+    return NextResponse.json(updated)
+  } else {
+    // Skapa config om den inte finns än
+    const created = await prisma.agentConfig.create({
+      data: {
+        orgId,
+        agentTemplateId: template.id,
+        displayName: (updateData["displayName"] as string) ?? template.name,
+        systemPromptOverride: updateData["systemPromptOverride"] as string | undefined,
+        assignedCollections: (updateData["assignedCollections"] as string[]) ?? template.defaultCollections,
+        isActive: (updateData["isActive"] as boolean) ?? true,
+      },
+    })
+    return NextResponse.json(created)
   }
-
-  const updated = await prisma.agentRegistry.update({
-    where: { slug },
-    data: updateData,
-  })
-
-  return NextResponse.json(updated)
 }

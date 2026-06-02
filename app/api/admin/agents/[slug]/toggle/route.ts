@@ -6,31 +6,33 @@ export async function PATCH(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  await requireClientAdmin()
+  const session = await requireClientAdmin()
+  const orgId = session.user.orgId
   const { slug } = await params
 
-  const agent = await prisma.agentRegistry.findUnique({ where: { slug } })
-  if (!agent) {
+  const template = await prisma.agentTemplate.findUnique({
+    where: { slug },
+    include: { agentConfigs: { where: { orgId } } },
+  })
+  if (!template) {
     return NextResponse.json({ error: "Agenten hittades inte" }, { status: 404 })
   }
 
-  if (agent.agentType === "PROCESS") {
-    return NextResponse.json(
-      { error: "Processagenter kan inte inaktiveras" },
-      { status: 403 }
-    )
+  if (template.agentType === "PROCESS") {
+    return NextResponse.json({ error: "Processagenter kan inte inaktiveras" }, { status: 403 })
+  }
+  if (template.isSystemAgent) {
+    return NextResponse.json({ error: "Systemagenter kan inte inaktiveras" }, { status: 403 })
   }
 
-  if (agent.isSystemAgent) {
-    return NextResponse.json(
-      { error: "Systemagenter kan inte inaktiveras" },
-      { status: 403 }
-    )
+  const config = template.agentConfigs[0]
+  if (!config) {
+    return NextResponse.json({ error: "Ingen konfiguration hittades för denna org" }, { status: 404 })
   }
 
-  const updated = await prisma.agentRegistry.update({
-    where: { slug },
-    data: { isActive: !agent.isActive },
+  const updated = await prisma.agentConfig.update({
+    where: { id: config.id },
+    data: { isActive: !config.isActive },
   })
 
   return NextResponse.json(updated)

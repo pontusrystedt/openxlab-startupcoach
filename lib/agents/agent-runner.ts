@@ -6,18 +6,32 @@ import crypto from "crypto"
 
 const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! })
 
-function buildPersonalityPrefix(agent: {
-  name: string
-  title: string | null
-  bio: string | null
-  personality: string | null
-}): string {
-  if (!agent.bio && !agent.personality && !agent.title) return ""
+// Parsar [LOCKED]...[/LOCKED] och [CUSTOMIZABLE]...[/CUSTOMIZABLE] ur template.
+// Mergar: personality-prefix + låst kärna + org-specifik override.
+function buildSystemPrompt(
+  template: string,
+  override: string | null | undefined,
+  agent: { name: string; title: string | null; bio: string | null; personality: string | null },
+  ctx: { displayName: string; orgName: string }
+): string {
+  const lockedMatch = template.match(/\[LOCKED\]([\s\S]*?)\[\/LOCKED\]/)
+  const locked = lockedMatch ? lockedMatch[1].trim() : template
+
+  const customizable = override?.trim() ?? ""
+
+  // Ersätt platshållare i låst del
+  const injected = locked
+    .replace(/\{\{agentName\}\}/g, ctx.displayName)
+    .replace(/\{\{orgName\}\}/g, ctx.orgName)
+
+  // Bygg personality-prefix
   const parts: string[] = []
-  if (agent.title) parts.push(`Du spelar rollen som ${agent.name} — ${agent.title}.`)
-  if (agent.bio) parts.push(`Din bakgrund: ${agent.bio}`)
+  if (agent.title)       parts.push(`Du spelar rollen som ${ctx.displayName} — ${agent.title}.`)
+  if (agent.bio)         parts.push(`Din bakgrund: ${agent.bio}`)
   if (agent.personality) parts.push(`Din personlighet och kommunikationsstil: ${agent.personality}`)
-  return parts.join("\n") + "\n\n---\n\n"
+  const personalityPrefix = parts.length > 0 ? parts.join("\n") + "\n\n---\n\n" : ""
+
+  return [personalityPrefix + injected, customizable].filter(Boolean).join("\n\n")
 }
 
 export interface AgentRunOptions {
@@ -51,49 +65,69 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
 
   const startTime = Date.now()
 
-  // Hämta agentdefinition från registret (org-specifik eller global)
-  const agent = await prisma.agentRegistry.findFirst({
-    where: {
-      slug: agentSlug,
-      isActive: true,
-      OR: [{ orgId }, { orgId: null }],
+  // Hämta AgentTemplate + org-specifik AgentConfig i en query
+  const template = await prisma.agentTemplate.findFirst({
+    where: { slug: agentSlug, isActive: true },
+    include: {
+      agentConfigs: {
+        where: { orgId, isActive: true },
+      },
     },
   })
-  if (!agent) throw new Error(`Agent '${agentSlug}' finns inte eller är inaktiv`)
+  if (!template) throw new Error(`Agent '${agentSlug}' finns inte eller är inaktiv`)
 
-  // Bygg kontext: generellt + agentens specifika samling
+  const config = template.agentConfigs[0] ?? null
+
+  const org = await prisma.organization.findUniqueOrThrow({
+    where: { id: orgId },
+    select: { name: true },
+  })
+
+  const systemPrompt = buildSystemPrompt(
+    template.systemPromptTemplate,
+    config?.systemPromptOverride,
+    template,
+    { displayName: config?.displayName ?? template.name, orgName: org.name }
+  )
+
+  // Samlingar: config.assignedCollections om satt, annars template.defaultCollections
+  const collections =
+    config?.assignedCollections?.length
+      ? config.assignedCollections
+      : template.defaultCollections.length > 0
+      ? template.defaultCollections
+      : [template.knowledgeCollection]
+
   const { knowledgeText, startupFileText } = await buildAgentContext(
     orgId,
     startupId,
-    agent.defaultCollections.length > 0 ? agent.defaultCollections : [agent.knowledgeCollection]
+    collections
   )
 
   const fullUserMessage = [
-    knowledgeText ? `--- Relevant kunskap ---\n${knowledgeText}` : "",
-    startupFileText ? `--- Startupens dokument ---\n${startupFileText}` : "",
+    knowledgeText    ? `--- Relevant kunskap ---\n${knowledgeText}`       : "",
+    startupFileText  ? `--- Startupens dokument ---\n${startupFileText}` : "",
     `--- Fråga/kontext ---\n${userMessage}`,
   ]
     .filter(Boolean)
     .join("\n\n")
 
-  const inputHash = crypto.createHash("sha256").update(fullUserMessage).digest("hex")
-
-  const fullSystemPrompt = buildPersonalityPrefix(agent) + agent.systemPrompt
+  const inputHash  = crypto.createHash("sha256").update(fullUserMessage).digest("hex")
 
   const response = await client.chat.complete({
     model: "mistral-large-latest",
     messages: [
-      { role: "system", content: fullSystemPrompt },
-      { role: "user", content: fullUserMessage },
+      { role: "system", content: systemPrompt },
+      { role: "user",   content: fullUserMessage },
     ],
     temperature: 0.3,
-    maxTokens: agent.maxTokens,
+    maxTokens: template.maxTokens,
   })
 
   const output =
     (response.choices?.[0]?.message?.content as string | undefined) ?? ""
   const outputHash = crypto.createHash("sha256").update(output).digest("hex")
-  const latencyMs = Date.now() - startTime
+  const latencyMs  = Date.now() - startTime
 
   let encryptedOutput: string | undefined
   let outputIv: string | undefined
@@ -102,13 +136,14 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
   if (encryptOutput) {
     const enc = encrypt(output)
     encryptedOutput = enc.encryptedText
-    outputIv = enc.iv
-    outputAuthTag = enc.authTag
+    outputIv        = enc.iv
+    outputAuthTag   = enc.authTag
   }
 
   const invocation = await prisma.agentInvocation.create({
     data: {
       agentSlug,
+      agentTemplateId: template.id,
       startupId,
       orgId,
       sessionId,
@@ -127,7 +162,7 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentRunResult
   return {
     output,
     invocationId: invocation.id,
-    agentName: agent.name,
+    agentName: config?.displayName ?? template.name,
   }
 }
 
@@ -138,12 +173,34 @@ export async function getAvailableAgents(orgId: string) {
   })
   const allowedTiers = org?.agentTiers ?? ["standard"]
 
-  return prisma.agentRegistry.findMany({
+  // Hämta templates + org-config i en query
+  const templates = await prisma.agentTemplate.findMany({
     where: {
       isActive: true,
       tier: { in: allowedTiers },
-      OR: [{ orgId }, { orgId: null }],
+    },
+    include: {
+      agentConfigs: {
+        where: { orgId, isActive: true },
+      },
     },
     orderBy: { sortOrder: "asc" },
+  })
+
+  // Forma om till samma struktur som frontend förväntar sig
+  return templates.map((t) => {
+    const config = t.agentConfigs[0] ?? null
+    return {
+      ...t,
+      name:         config?.displayName ?? t.name,
+      systemPrompt: config?.systemPromptOverride
+        ? buildSystemPrompt(t.systemPromptTemplate, config.systemPromptOverride, t, {
+            displayName: config.displayName,
+            orgName: "",
+          })
+        : t.systemPromptTemplate,
+      // Ta bort agentConfigs från output
+      agentConfigs: undefined,
+    }
   })
 }
