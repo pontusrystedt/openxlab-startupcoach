@@ -21,12 +21,20 @@ function serializeAgent(a: {
 
 export default async function AgenterPage() {
   const session = await requireCoach()
+  const orgId = session.user.orgId
 
-  const [allAgents, org] = await Promise.all([
-    prisma.agentRegistry.findMany({ orderBy: { sortOrder: "asc" } }),
-    session.user.orgId
+  const [templates, org] = await Promise.all([
+    prisma.agentTemplate.findMany({
+      orderBy: { sortOrder: "asc" },
+      include: {
+        agentConfigs: orgId
+          ? { where: { orgId, isActive: true } }
+          : false,
+      },
+    }),
+    orgId
       ? prisma.organization.findUnique({
-          where: { id: session.user.orgId },
+          where: { id: orgId },
           select: { agentTiers: true },
         })
       : null,
@@ -34,6 +42,16 @@ export default async function AgenterPage() {
 
   const orgTiers = org?.agentTiers ?? ["standard"]
   const isCoachOrAdmin = ["COACH", "CLIENT_ADMIN", "SYSTEM_ADMIN"].includes(session.user.role)
+
+  // Merge template med org-specifik config
+  const allAgents = templates.map((t) => {
+    const config = Array.isArray(t.agentConfigs) ? t.agentConfigs[0] ?? null : null
+    return {
+      ...t,
+      name: config?.displayName ?? t.name,
+      isActive: config?.isActive ?? t.isActive,
+    }
+  })
 
   return (
     <AgenterPageClient

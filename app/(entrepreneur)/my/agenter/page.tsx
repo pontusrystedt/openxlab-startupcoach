@@ -26,20 +26,37 @@ export default async function EntrepreneurAgenterPage() {
   const session = await auth()
   if (!session) redirect("/login")
 
-  const [allAgents, org] = await Promise.all([
-    prisma.agentRegistry.findMany({
+  const orgId = session.user.orgId
+
+  const [templates, org] = await Promise.all([
+    prisma.agentTemplate.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
+      include: {
+        agentConfigs: orgId
+          ? { where: { orgId, isActive: true } }
+          : false,
+      },
     }),
-    session.user.orgId
+    orgId
       ? prisma.organization.findUnique({
-          where: { id: session.user.orgId },
+          where: { id: orgId },
           select: { agentTiers: true },
         })
       : null,
   ])
 
   const orgTiers = org?.agentTiers ?? ["standard"]
+
+  // Merge template med org-specifik config
+  const allAgents = templates.map((t) => {
+    const config = Array.isArray(t.agentConfigs) ? t.agentConfigs[0] ?? null : null
+    return {
+      ...t,
+      name: config?.displayName ?? t.name,
+      isActive: config?.isActive ?? t.isActive,
+    }
+  })
 
   return (
     <AgenterPageClient
