@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireClientAdmin } from "@/lib/access"
 import { prisma } from "@/lib/prisma"
 
-// Fält som ClientAdmin får ändra på SUBJECT_MATTER-agenter (via AgentConfig)
 const CONFIG_FIELDS = [
   "displayName", "systemPromptOverride", "assignedCollections", "isActive",
 ] as const
 
-// Fält som ClientAdmin får ändra på PROCESS-agenter (begränsat)
 const PROCESS_CONFIG_FIELDS = [
   "displayName", "systemPromptOverride",
 ] as const
@@ -20,9 +18,13 @@ export async function PUT(
   const orgId = session.user.orgId
   const { slug } = await params
 
+  if (!orgId) {
+    return NextResponse.json({ error: "Ingen organisation kopplad" }, { status: 403 })
+  }
+
   const template = await prisma.agentTemplate.findUnique({
     where: { slug },
-    include: { agentConfigs: orgId ? { where: { orgId } } : false },
+    include: { agentConfigs: { where: { orgId } } },
   })
   if (!template) {
     return NextResponse.json({ error: "Agenten hittades inte" }, { status: 404 })
@@ -30,7 +32,6 @@ export async function PUT(
 
   const data = await req.json()
 
-  // Processagenter kan inte inaktiveras
   if (template.agentType === "PROCESS" && "isActive" in data && data.isActive === false) {
     return NextResponse.json(
       { error: "Processagenter kan inte inaktiveras" },
@@ -56,15 +57,14 @@ export async function PUT(
     })
     return NextResponse.json(updated)
   } else {
-    // Skapa config om den inte finns än
     const created = await prisma.agentConfig.create({
       data: {
-        orgId,
+        orgId,                           // garanterat string efter null-check ovan
         agentTemplateId: template.id,
-        displayName: (updateData["displayName"] as string) ?? template.name,
-        systemPromptOverride: updateData["systemPromptOverride"] as string | undefined,
-        assignedCollections: (updateData["assignedCollections"] as string[]) ?? template.defaultCollections,
-        isActive: (updateData["isActive"] as boolean) ?? true,
+        displayName: (updateData["displayName"] as string | undefined) ?? template.name,
+        systemPromptOverride: (updateData["systemPromptOverride"] as string | undefined) ?? undefined,
+        assignedCollections: (updateData["assignedCollections"] as string[] | undefined) ?? template.defaultCollections,
+        isActive: (updateData["isActive"] as boolean | undefined) ?? true,
       },
     })
     return NextResponse.json(created)
