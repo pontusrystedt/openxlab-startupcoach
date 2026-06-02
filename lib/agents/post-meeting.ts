@@ -151,17 +151,21 @@ ${transcriptText}`
 
   // Kör eventuella POST_MEETING-agenter asynkront
   if (session.startup.orgId) {
-    const postMeetingAgents = await prisma.agentRegistry.findMany({
+    const postMeetingTemplates = await prisma.agentTemplate.findMany({
       where: {
         trigger: "POST_MEETING",
         isActive: true,
-        OR: [{ orgId: session.startup.orgId }, { orgId: null }],
+      },
+      include: {
+        agentConfigs: {
+          where: { orgId: session.startup.orgId!, isActive: true },
+        },
       },
     })
 
-    for (const agent of postMeetingAgents) {
+    for (const template of postMeetingTemplates) {
       runAgent({
-        agentSlug: agent.slug,
+        agentSlug: template.slug,
         startupId: session.startupId,
         orgId: session.startup.orgId,
         userMessage: `Analysera detta möte (session #${session.sessionNumber}) och ge din specialistbedömning baserat på transkriptionen.`,
