@@ -22,7 +22,7 @@ export async function PUT(
 
   const template = await prisma.agentTemplate.findUnique({
     where: { slug },
-    include: { agentConfigs: { where: { orgId } } },
+    include: { agentConfigs: orgId ? { where: { orgId } } : false },
   })
   if (!template) {
     return NextResponse.json({ error: "Agenten hittades inte" }, { status: 404 })
