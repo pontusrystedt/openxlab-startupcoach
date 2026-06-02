@@ -3,10 +3,13 @@ import { requireClientAdmin } from "@/lib/access"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 
-// Hämtar templates + org-specifik config för inloggad org
 export async function GET() {
   const session = await requireClientAdmin()
   const orgId = session.user.orgId
+
+  if (!orgId) {
+    return NextResponse.json({ error: "Ingen organisation kopplad" }, { status: 403 })
+  }
 
   const templates = await prisma.agentTemplate.findMany({
     orderBy: { sortOrder: "asc" },
@@ -17,45 +20,45 @@ export async function GET() {
     },
   })
 
-  // Forma om: merge template med config så att frontend ser ett platt objekt
   const agents = templates.map((t) => {
     const config = t.agentConfigs[0] ?? null
     return {
-      id:                  t.id,
-      slug:                t.slug,
-      name:                config?.displayName ?? t.name,
-      title:               t.title,
-      description:         t.description,
-      bio:                 t.bio,
-      personality:         t.personality,
-      agentType:           t.agentType,
-      processComponent:    t.processComponent,
-      tier:                t.tier,
-      availableFromTier:   t.availableFromTier,
-      isActive:            config?.isActive ?? t.isActive,
-      isSystemAgent:       t.isSystemAgent,
-      sortOrder:           t.sortOrder,
-      avatarStyle:         t.avatarStyle,
-      avatarSeed:          t.avatarSeed,
-      defaultCollections:  config?.assignedCollections?.length
-                             ? config.assignedCollections
-                             : t.defaultCollections,
-      // Prompt: visa bara [CUSTOMIZABLE]-delen som redigerbar
+      id:                   t.id,
+      slug:                 t.slug,
+      name:                 config?.displayName ?? t.name,
+      title:                t.title,
+      description:          t.description,
+      bio:                  t.bio,
+      personality:          t.personality,
+      agentType:            t.agentType,
+      processComponent:     t.processComponent,
+      tier:                 t.tier,
+      availableFromTier:    t.availableFromTier,
+      isActive:             config?.isActive ?? t.isActive,
+      isSystemAgent:        t.isSystemAgent,
+      sortOrder:            t.sortOrder,
+      avatarStyle:          t.avatarStyle,
+      avatarSeed:           t.avatarSeed,
+      defaultCollections:   config?.assignedCollections?.length
+                              ? config.assignedCollections
+                              : t.defaultCollections,
       systemPromptOverride: config?.systemPromptOverride ?? "",
-      // Låst del för display i UI
-      systemPromptLocked:  extractLocked(t.systemPromptTemplate),
-      // Config-id för PATCH
-      configId:            config?.id ?? null,
+      systemPromptLocked:   extractLocked(t.systemPromptTemplate),
+      configId:             config?.id ?? null,
     }
   })
 
   return NextResponse.json(agents)
 }
 
-// ClientAdmin skapar en ny subject-matter-agent för sin org
 export async function POST(req: NextRequest) {
   const session = await requireClientAdmin()
   const orgId = session.user.orgId
+
+  if (!orgId) {
+    return NextResponse.json({ error: "Ingen organisation kopplad" }, { status: 403 })
+  }
+
   const data = await req.json()
 
   if (!data.slug || !data.name || !data.systemPrompt || !data.description) {
@@ -67,8 +70,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "En agent med den sluggen finns redan" }, { status: 409 })
   }
 
-  // Ny agent skapad av ClientAdmin lagras som AgentTemplate utan org-koppling
-  // + en AgentConfig för den skapande orgen
   const template = await prisma.agentTemplate.create({
     data: {
       slug:                data.slug,
@@ -77,7 +78,6 @@ export async function POST(req: NextRequest) {
       description:         data.description,
       bio:                 data.bio || null,
       personality:         data.personality || null,
-      // Wrap i LOCKED + tom CUSTOMIZABLE
       systemPromptTemplate:
         `[LOCKED]\n${data.systemPrompt}\n[/LOCKED]\n\n[CUSTOMIZABLE]\n[/CUSTOMIZABLE]`,
       knowledgeCollection: data.knowledgeCollection ?? "general",
@@ -89,19 +89,18 @@ export async function POST(req: NextRequest) {
       isActive:            true,
       isSystemAgent:       false,
       agentType:           "SUBJECT_MATTER",
-      processComponent:    "COACHING", // default
+      processComponent:    "COACHING",
       tier:                data.tier ?? "standard",
     },
   })
 
-  // Skapa config för den skapande orgen
   const config = await prisma.agentConfig.create({
     data: {
       orgId,
       agentTemplateId:     template.id,
       displayName:         data.name,
       assignedCollections: data.defaultCollections ?? ["general"],
-      isActive:            false, // startar på bänken
+      isActive:            false,
     },
   })
 
